@@ -51,17 +51,24 @@ Module Tuple.
                   end
     end.
 
-  Fixpoint ch {n : nat} (ntup : tn n) : function (to_set ntup) :=
+  Definition ch {n : nat} (ntup : tn n) : Fun.temp_name_mapping :=
     fun x : name =>
       match lookup x ntup with
         | None => None
-        | Some n' => if beq_nat (n - 1) n'
+        | Some n' => if beq_nat (pred n) n'
                      then Some star_bottom
-                     else match nth_option ntup (n' + 1) with
+                     else match nth_option ntup (S n') with
                             | None => None
                             | Some na => Some (star_name na)
                           end
       end.
+
+  Lemma ch_S : forall x y, ch (singleton (name_cons x)) (name_cons y) =
+                         ch (singleton (name_cons (S x))) (name_cons (S y)).
+  Proof.
+    compute.
+    auto.
+  Qed.
 
   Goal forall (x : name), ch (nil name) x = None.
   Proof. auto. Qed.
@@ -72,7 +79,7 @@ Module Tuple.
     destruct x.
     induction n.
       auto.
-      simpl.
+      compute.
       rewrite <- beq_nat_refl.
       auto.
   Qed.
@@ -81,12 +88,43 @@ Module Tuple.
   Proof.
     intros.
     induction x.
-    induction n.
-    auto.
-    simpl.
-    rewrite <- beq_nat_refl.
-    simpl.
-    auto.
+      induction n.
+        auto.
+        compute.
+        rewrite <- beq_nat_refl.
+        auto.
+  Qed.
+
+  Lemma name_S : forall x y, name_cons (S x) = name_cons (S y) <-> name_cons x = name_cons y.
+  Proof.
+    induction x; induction y; split; intros; auto; try discriminate; try (inversion H; auto).
+  Qed.
+
+  Lemma name_cons_prop : forall n m, name_cons n = name_cons m <-> n = m.
+  Proof.
+    split; induction n, m; intros; auto; try discriminate; try (inversion H; auto).
+  Qed.
+
+  Lemma ch_singleton_None : forall (x y : name), x <> y -> ch (singleton x) y = None.
+  Proof.
+    unfold not.
+    destruct x; induction n.
+      intros.
+      destruct y; induction n.
+        exfalso.
+        auto.
+        compute.
+        auto.
+      intros.
+      destruct y; induction n0.
+        compute.
+        auto.
+        rewrite <- ch_S.
+        apply IHn.
+        intro.
+        apply H.
+        apply name_S.
+        auto.
   Qed.
 
 End Tuple.

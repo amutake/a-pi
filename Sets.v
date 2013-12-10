@@ -55,13 +55,10 @@ Module NameDecidableType <: DecidableType.
   Qed.
   Definition eq_equiv :=
     Build_Equivalence t eq name_refl name_sym name_trans.
-  Theorem eq_dec : forall x y : t, {eq x y} + {~ eq x y}.
-  Proof.
-    intros.
-    destruct x, y.
-    simpl.
-    apply eq_nat_dec.
-  Qed.
+  Definition eq_dec (x y : t) : {eq x y} + {~ eq x y} :=
+    match x, y with
+      | name_cons x', name_cons y' => eq_nat_dec x' y'
+    end.
 End NameDecidableType.
 
 Module StarDecidableType <: DecidableType.

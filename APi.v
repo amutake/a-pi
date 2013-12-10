@@ -32,71 +32,94 @@ Admitted.
 
 Reserved Notation "ns ';' f '|-' p" (at level 40).
 
-Definition func := name -> option star.
-
-Inductive typing : NameSets.t -> func -> config -> Prop :=
-  | NIL : NameSets.empty ; empty |- nil
-  | MSG : forall x y : name, NameSets.empty ; empty |- send x y
-  | ACT : forall {ns : NameSets.t} (f : func) (p : config) (x y : name) (z : option name),
-            ns ; f |- p ->
-            NameSets.diff ns (NameSets.singleton x) = Option.to_set z ->
-            NameSets.mem y ns = false ->
-            (forall x' : name, NameSets.mem x ns = true -> Tuple.ch (Option.append (Tuple.singleton x) z) x' = f x') ->
-            (forall x' : name, NameSets.mem x ns = false -> Tuple.ch (Option.to_tuple z) x' = f x') ->
-            NameSets.union (NameSets.singleton x) (Option.to_set z) ; Tuple.ch (Option.append (Tuple.singleton x) z) |- create x y p
-  | COMP : forall (ns1 ns2 : NameSets.t) (f1 : func) (f2 : func) (p1 p2 : config),
+Inductive typing : NameSets.t -> Fun.temp_name_mapping -> config -> Prop :=
+  | NIL : NameSets.empty ; Fun.empty |- nil
+  | MSG : forall x y : name, NameSets.empty ; Fun.empty |- send x y
+  | ACT_empty : forall (f : Fun.temp_name_mapping) (p : config) (x y : name), (* x /= y? *)
+                  NameSets.empty ; f |- p ->
+                  f = Fun.empty ->
+                  NameSets.singleton x ; Tuple.ch (Tuple.singleton x) |- create x y p
+  | ACT_x : forall (f : Fun.temp_name_mapping) (p : config) (x y : name),
+              NameSets.singleton x ; f |- p ->
+              x <> y ->
+              f = Tuple.ch (Tuple.singleton x) ->
+              NameSets.singleton x ; Tuple.ch (Tuple.singleton x) |- create x y p
+  | ACT_z : forall (f : Fun.temp_name_mapping) (p : config) (x y z : name),
+              NameSets.singleton z ; f |- p ->
+              x <> z ->
+              y <> z ->
+              f = Tuple.ch (Tuple.singleton z) ->
+              NameSets.add x (NameSets.singleton z) ; Tuple.ch (Tuple.add x (Tuple.singleton z)) |- create x y p
+  | ACT_xz : forall (f : Fun.temp_name_mapping) (p : config) (x y z : name),
+               NameSets.add x (NameSets.singleton z) ; f |- p ->
+               x <> z ->
+               x <> y ->
+               y <> z ->
+               f = Tuple.ch (Tuple.add x (Tuple.singleton z)) ->
+               NameSets.add x (NameSets.singleton z) ; f |- create x y p
+  | COMP : forall (ns1 ns2 : NameSets.t) (f1 : Fun.temp_name_mapping) (f2 : Fun.temp_name_mapping) (p1 p2 : config),
              ns1 ; f1 |- p1 ->
              ns2 ; f2 |- p2 ->
              NameSets.inter ns1 ns2 = NameSets.empty ->
-             NameSets.union ns1 ns2 ; fun_plus f1 f2 |- compose p1 p2
-  | RES : forall (ns : NameSets.t) (f : func) (p : config) (x : name),
+             NameSets.union ns1 ns2 ; Fun.fun_plus f1 f2 |- compose p1 p2
+  | RES : forall (ns : NameSets.t) (f : Fun.temp_name_mapping) (p : config) (x : name),
             ns ; f |- p ->
-            NameSets.diff ns (NameSets.singleton x) ; fun_diff' f (NameSets.diff ns (NameSets.singleton x)) |- restrict x p
+            NameSets.diff ns (NameSets.singleton x) ; Fun.fun_diff f (NameSets.diff ns (NameSets.singleton x)) |- restrict x p
   where "ns ';' f '|-' p" := (typing ns f p).
 
-Goal exists (ns : NameSets.t) (f : function ns), ns ; f |- create (name_cons 0) (name_cons 1) nil.
+Goal exists (ns : NameSets.t) (f : Fun.temp_name_mapping), ns ; f |- create (name_cons 0) (name_cons 1) nil.
 Proof.
   exists (NameSets.singleton (name_cons 0)).
   exists (fun x => match x with
                      | name_cons 0 => Some star_bottom
                      | _ => None
                    end).
-  assert (NameSets.singleton (name_cons 0) = NameSets.union (NameSets.singleton (name_cons 0)) (Option.to_set None)).
-    auto.
-  assert (forall x : name,
-            (fun x : name =>
-               match x with
-                 | name_cons 0 => Some star_bottom
-                 | name_cons (S _) => None
-               end) x =
-            Tuple.ch (Option.append (Tuple.singleton (name_cons 0)) None) x).
-    intros.
-    induction x.
-    induction n.
-      auto.
-      auto.
-  apply functional_extensionality in H0.
 
-  rewrite H.
-  rewrite H0.
-
-  eapply ACT with (x := name_cons 0) (y := name_cons 1) (z := None) (p := nil) (f := Fun.empty).
+  replace (fun x : name => match x with
+                             | name_cons 0 => Some star_bottom
+                             | name_cons (S _) => None
+                           end)
+          with (Tuple.ch (Tuple.singleton (name_cons 0))).
+  eapply ACT_empty.
   apply NIL.
   auto.
-  auto.
-  intros.
-  inversion H1.
-  intros.
-  auto.
+  apply functional_extensionality.
+  intro.
+  destruct x.
+  induction n.
+    auto.
+    auto.
 Qed.
 
-Goal forall (ns : NameSets.t) (f : function ns), ~ ns ; f |- compose (create (name_cons 0) (name_cons 1) nil) (create (name_cons 0) (name_cons 2) nil).
+Goal forall (ns : NameSets.t) (f : Fun.temp_name_mapping), ~ ns ; f |- compose (create (name_cons 0) (name_cons 1) nil) (create (name_cons 0) (name_cons 2) nil).
 Proof.
   unfold not.
   intros.
-Admitted.
+  inversion H; subst.
+  inversion H2; subst.
+  inversion H5; subst.
+  compute in H6; discriminate.
+  compute in H6; discriminate.
+  destruct z; induction n; compute in H6; discriminate.
+  destruct z; induction n; compute in H6; discriminate.
+  inversion H5; subst.
+  compute in H6; discriminate.
+  compute in H6; discriminate.
+  destruct z; induction n; compute in H6; discriminate.
+  destruct z; induction n; compute in H6; discriminate.
+  inversion H5; subst.
+  inversion H4.
+  inversion H4.
+  inversion H4.
+  inversion H4.
+  inversion H5; subst.
+  destruct z; induction n; compute in H6; discriminate.
+  destruct z; induction n; compute in H6; discriminate.
+  destruct z; induction n; inversion H4.
+  destruct z; induction n; inversion H4.
+Qed.
 
-Goal exists (ns : NameSets.t) (f : function ns), ns ; f |- compose (create (name_cons 0) (name_cons 1) nil) (create (name_cons 2) (name_cons 3) nil).
+Goal exists (ns : NameSets.t) (f : Fun.temp_name_mapping), ns ; f |- compose (create (name_cons 0) (name_cons 1) nil) (create (name_cons 2) (name_cons 3) nil).
 Proof.
   exists (NameSets.add (name_cons 0) (NameSets.singleton (name_cons 2))).
   exists (fun x : name => match x with
@@ -104,15 +127,86 @@ Proof.
                             | name_cons 2 => Some star_bottom
                             | _ => None
                           end).
-  assert (NameSets.add (name_cons 0) (NameSets.singleton (name_cons 2)) = NameSets.union (NameSets.singleton (name_cons 0)) (NameSets.singleton (name_cons 2))).
+  replace (NameSets.add (name_cons 0) (NameSets.singleton (name_cons 2)))
+  with (NameSets.union (NameSets.singleton (name_cons 0)) (NameSets.singleton (name_cons 2))).
+
+  replace (fun x : name =>
+             match x with
+               | name_cons 0 => Some star_bottom
+               | name_cons 1 => None
+               | name_cons 2 => Some star_bottom
+               | name_cons (S (S (S _))) => None
+             end)
+  with (Fun.fun_plus (fun x => match x with
+                                 | name_cons 0 => Some star_bottom
+                                 | _ => None
+                               end)
+                     (fun x => match x with
+                                 | name_cons 2 => Some star_bottom
+                                 | _ => None
+                               end)).
+
+  eapply COMP.
+  replace (fun x => match x with
+                      | name_cons 0 => Some star_bottom
+                      | _ => None
+                    end)
+  with (Tuple.ch (Tuple.singleton (name_cons 0))).
+  eapply ACT_empty.
+  apply NIL.
   auto.
+  apply functional_extensionality.
+  intro.
+  destruct x; induction n.
+    auto.
+    auto.
+  replace (fun x => match x with
+                      | name_cons 2 => Some star_bottom
+                      | _ => None
+                    end)
+  with (Tuple.ch (Tuple.singleton (name_cons 2))).
+  eapply ACT_empty.
+  apply NIL.
+  auto.
+
+  Focus 2.
+    auto.
+  Focus 2.
+    unfold Fun.fun_plus.
+    apply functional_extensionality.
+    intros.
+    destruct x; induction n.
+      auto.
+      auto.
+  Focus 2.
+    auto.
+
+  apply functional_extensionality.
+  intro.
+  destruct x; induction n.
+    auto.
+
+    compute.
+
+  compute.
+
+  auto.
+  apply functional_extensionality.
+  intros.
+  destruct x; induction n.
+    unfold Fun.fun_plus.
+    auto.
+  unfold Fun.fun_plus.
+  unfold Tuple.ch.
+  compute.
+
   assert (forall x : name,
             (fun x : name => match x with
                                | name_cons 0 => Some star_bottom
                                | name_cons 2 => Some star_bottom
                                | _ => None
                              end) x =
-            Fun.fun_plus (ns1 := (NameSets.singleton (name_cons 0))) (ns2 := NameSets.singleton (name_cons 2)) (fun x => match x with
+            Fun.fun_plus (fun x => match x with
                                      | name_cons 0 => Some star_bottom
                                      | _ => None
                                    end)
@@ -121,17 +215,59 @@ Proof.
                                      | _ => None
                                    end) x).
     intros.
-    induction x.
+    destruct x.
+    induction n.
+      unfold Fun.fun_plus.
+      auto.
+    auto.
+
+  apply functional_extensionality in H0.
+  rewrite H.
+  rewrite H0.
+  eapply COMP.
+
+  assert (forall n : name, NameSets.singleton n = NameSets.union (NameSets.singleton n) (Option.to_set None)).
+    auto.
+  assert (forall n x,
+            (fun x : name =>
+            match beq_name x n with
+              | true => Some star_bottom
+              | false => None
+            end) x =
+            Tuple.ch (Tuple.append (Tuple.singleton n) (Option.to_tuple None)) x).
+    intro.
+    destruct n.
+    induction n.
+      intro.
+      destruct x.
       induction n.
-        unfold fun_plus.
-        simpl.
-        compute.
-        destruct NameDecidableType.eq_dec.
+        auto.
+        auto.
+      destruct x.
+      induction n0.
+        auto.
+        assert (beq_name (name_cons (S n0)) (name_cons (S n)) = beq_name (name_cons n0) (name_cons n)).
           auto.
-          assert (NameDecidableType.eq (name_cons 0) (name_cons 0)).
-            compute; auto.
-          apply n in H0.
-          inversion H0.
+        rewrite H2.
+        rewrite IHn.
+        simpl.
+        assert (forall (n : nat) (na na' : name),
+                  (match n + 1 with
+                     | 0 => Some na
+                     | 1 => None
+                     | S (S _) => None
+                   end) =
+                  (match n + 1 with
+                     | 0 => Some na'
+                     | 1 => None
+                     | S (S _) => None
+                   end)).
+          intro.
+          induction n1.
+            auto.
+            auto.
+        (* rewrite H3. *)
+
 Admitted.
 
 
@@ -190,10 +326,10 @@ Fixpoint config_bound_names (c : config) : NameSets.t :=
     | compose c1 c2 => NameSets.union (config_bound_names c1) (config_bound_names c2)
   end.
 
-Definition ConfigSubset {ns : NameSets.t} {f : function ns} {p : config} (ty : ns ; f |- p) : Prop :=
+Definition ConfigSubset {ns : NameSets.t} {f : Fun.temp_name_mapping} {p : config} (ty : ns ; f |- p) : Prop :=
   NameSets.subset ns (config_free_names p) = true.
 
-Lemma config_subset : forall (ns : NameSets.t) (f : function ns) (p : config) (ty : ns ; f |- p), ConfigSubset ty.
+Lemma config_subset : forall (ns : NameSets.t) (f : Fun.temp_name_mapping) (p : config) (ty : ns ; f |- p), ConfigSubset ty.
 Proof.
   intros.
   unfold ConfigSubset.
@@ -202,6 +338,8 @@ Proof.
     auto.
 
     auto.
+
+    simpl.
 
 Admitted.
 
