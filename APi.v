@@ -40,7 +40,7 @@ Inductive typing : NameSets.t -> Fun.temp_name_mapping -> config -> Prop :=
              NameSets.union ns1 ns2 ; Fun.fun_plus f1 f2 |- compose p1 p2
   | RES : forall (ns : NameSets.t) (f : Fun.temp_name_mapping) (p : config) (x : name),
             ns ; f |- p ->
-            NameSets.diff ns (NameSets.singleton x) ; Fun.fun_remove f x |- restrict x p
+            NameSets.remove x ns ; Fun.fun_remove f x |- restrict x p
   where "ns ';' f '|-' p" := (typing ns f p).
 
 Goal exists (ns : NameSets.t) (f : Fun.temp_name_mapping), ns ; f |- create (name_cons 0) (name_cons 1) nil.
@@ -170,11 +170,10 @@ Proof.
   auto.
 Qed.
 
-Lemma typing_domain : forall ns f p (ty : ns ; f |- p) x,
-                        Fun.domain f x <->
+Lemma typing_domain_1 : forall ns f p (ty : ns ; f |- p) x,
+                        Fun.domain f x ->
                         NameSets.mem x ns = true.
 Proof.
-  split.
     intros.
     induction ty.
       unfold Fun.domain in H.
@@ -231,11 +230,74 @@ Proof.
           discriminate.
           apply IHty.
           auto.
+          apply mem_union.
+          apply Fun.fun_plus_domain in H.
+          inversion H.
+          apply IHty1 in H1.
+          left; auto.
+          apply IHty2 in H1.
+          right; auto.
 
+      apply Fun.fun_remove_domain_2 in H.
+      inversion H.
+      apply IHty in H1.
+      apply Sets.mem_remove with (y := x0) in H1.
+      inversion H1; auto.
+Qed.
 
+Lemma typing_domain_2 : forall ns f p (ty : ns ; f |- p) x,
+                        NameSets.mem x ns = true ->
+                        Fun.domain f x.
+Proof.
+  intros.
+    assert (forall P : Prop, P -> ~~P).
+      intro.
+      intro.
+      intro.
+    (*   apply H0 in H. *)
+    (*   auto. *)
 
+    (* unfold Fun.domain. *)
+    (* intro; intro. *)
+    (* induction ty. *)
+    (*   simpl in H. *)
+    (*   discriminate. *)
 
+    (*   simpl in H; discriminate. *)
 
+    (*   apply Tuple.ch_singleton_None_rev in H1. *)
+    (*   destruct x, x0. *)
+    (*   simpl in H0. *)
+    (*   destruct (Peano_dec.eq_nat_dec n n0). *)
+    (*     apply H1; f_equal; auto. *)
+    (*     discriminate. *)
+
+    (*   apply Tuple.ch_singleton_None_rev in H1. *)
+    (*   destruct x, x0. *)
+    (*   simpl in H0. *)
+    (*   destruct (Peano_dec.eq_nat_dec n n0). *)
+    (*     apply H1; f_equal; auto. *)
+    (*     discriminate. *)
+
+    (*   apply H in H1. *)
+    (*   apply Tuple.ch_not_domain in H1. *)
+    (*   destruct x, x0, y, z. *)
+    (*   inversion_clear H1. *)
+    (*   inversion_clear H0. *)
+    (*   apply Tuple.ch_not_domain in H6. *)
+    (*   inversion_clear H6. *)
+    (*   subst. *)
+    (*   simpl in IHty. *)
+    (*   destruct (Peano_dec.eq_nat_dec n n2). *)
+    (*     rewrite e in H0. *)
+    (*     apply H0; auto. *)
+    (*     destruct (beq_nat n n2) eqn:?. *)
+    (*       apply beq_nat_true_iff in Heqb. *)
+    (*       contradiction. *)
+    (*       apply beq_nat_false_iff in Heqb. *)
+    (*       inversion_clear ty; subst. *)
+    (*         inversion_clear H4; subst. *)
+Admitted.
 
 Definition replace (x y z : name) : name :=
   match NameOrderedType.compare x z with
@@ -485,6 +547,10 @@ Proof.
         apply IHty1.
           auto.
           auto.
+          apply typing_domain_1 with (ns := ns1) (p := p1) in H7.
+          apply typing_domain_1 with (ns := ns2) (p := p2) in H0.
+          assert (f1 y = None).
+
 
 
 

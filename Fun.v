@@ -131,41 +131,39 @@ Module Fun.
         auto.
   Qed.
 
-  Lemma fun_remove_domain : forall f x y, domain f x <-> domain (fun_remove f y) x \/ x = y.
+  Lemma fun_remove_domain_1 : forall f x y, domain f x -> domain (fun_remove f y) x \/ x = y.
+  Proof.
+    unfold domain.
+    unfold fun_remove.
+    intros.
+    destruct (beq_name x y) eqn:?.
+      apply beq_name_true_iff in Heqb.
+      right; auto.
+
+      destruct (f x).
+        destruct s.
+          left.
+          destruct (beq_name n y); easy.
+          left; easy.
+          left; easy.
+          auto.
+  Qed.
+
+  Lemma fun_remove_domain_2 : forall f x y, domain (fun_remove f y) x -> x <> y /\ domain f x.
   Proof.
     unfold domain.
     unfold fun_remove.
     split.
-      intros.
-      destruct (beq_name x y) eqn:?.
-        apply beq_name_true_iff in Heqb.
-        right; auto.
+      intro.
+      apply beq_name_true_iff in H0.
+      rewrite H0 in H.
+      apply H; auto.
 
-        destruct (f x).
-          destruct s.
-            left.
-            destruct (beq_name n y); easy.
-            left; easy.
-            left; easy.
-            auto.
-      intros.
-      destruct (f x) eqn:?.
-      easy.
-      destruct (beq_name x y) eqn:?.
-
-      inversion H; auto.
-        Focus 2.
-        inversion H.
-        auto.
-        apply beq_name_false_iff in Heqb.
-        easy.
-        destruct (beq_name x y) eqn:?.
-          auto.
-          destruct (f x).
-            easy.
-            auto.
-        rewrite H0 in H.
-  Admitted.
+      intro.
+      rewrite H0 in H.
+      apply H.
+      destruct (beq_name x y); auto.
+  Qed.
 
   Definition fun_join (f : temp_name_mapping) : temp_name_mapping :=
     fun x : name =>

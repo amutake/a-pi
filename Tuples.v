@@ -286,6 +286,20 @@ Module Tuple.
         auto.
   Qed.
 
+  Lemma ch_singleton_None_rev : forall x y, ch (singleton x) y = None -> x <> y.
+  Proof.
+    intros.
+    destruct x, y.
+    unfold ch in H.
+    simpl in H.
+    destruct (beq_nat n0 n) eqn:?.
+      discriminate.
+      apply beq_nat_false_iff in Heqb.
+      intro; apply Heqb.
+      apply name_cons_prop in H0.
+      auto.
+  Qed.
+
   Lemma ch_singleton_not_name : forall (x y z : name), ch (singleton x) y = Some (star_name z) -> False.
   Proof.
     destruct x, y.
