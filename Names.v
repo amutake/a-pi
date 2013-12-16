@@ -130,6 +130,34 @@ Module NameDecidableType <: DecidableType.
     end.
 End NameDecidableType.
 
+Lemma name_eq_iff : forall x y, NameDecidableType.eq x y <-> x = y.
+Proof.
+  intros.
+  unfold NameDecidableType.eq.
+  destruct x, y.
+  split.
+    intro.
+    f_equal; auto.
+    intro.
+    apply name_cons_prop; auto.
+Qed.
+
+Lemma name_neq_iff : forall x y, ~NameDecidableType.eq x y <-> x <> y.
+Proof.
+  intros.
+  unfold NameDecidableType.eq.
+  destruct x, y.
+  split.
+    intro.
+    intro.
+    apply H.
+    apply name_cons_prop; auto.
+    intro.
+    intro.
+    apply H.
+    f_equal; auto.
+Qed.
+
 Module StarDecidableType <: DecidableType.
 
   Definition t := star.

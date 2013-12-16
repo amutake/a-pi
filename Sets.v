@@ -1,227 +1,152 @@
-Require Import Coq.MSets.MSets Coq.Arith.Peano_dec Coq.Arith.EqNat Names.
+Require Import Coq.MSets.MSets Coq.Arith.Peano_dec Coq.Arith.EqNat Coq.Classes.Morphisms Names.
 
-Module NameSets := MSetWeakList.MakeRaw(NameDecidableType).
-Module StarSets := MSetWeakList.MakeRaw(StarDecidableType).
+Module StarSets.
+  Module M := MSetWeakList.Make(StarDecidableType).
+  Module P := WPropertiesOn(StarDecidableType)(M).
+  Module EP := WEqPropertiesOn(StarDecidableType)(M).
+  Module F := WFactsOn(StarDecidableType)(M).
+  Include M.
+End StarSets.
+Module NameSets.
+  Module M := MSetWeakList.Make(NameDecidableType).
+  Module P := WPropertiesOn(NameDecidableType)(M).
+  Module EP := WEqPropertiesOn(NameDecidableType)(M).
+  Module F := WFactsOn(NameDecidableType)(M).
+  Include M.
+End NameSets.
 
-Lemma mem_head : forall x s, NameSets.mem x (NameSets.add x s) = true.
+Lemma mem_head : forall x s, NameSets.In x (NameSets.add x s).
 Proof.
   intros.
-  destruct x.
-  induction s.
-    simpl.
-    destruct (eq_nat_dec n n); auto.
-
-    destruct a.
-    simpl.
-    destruct (eq_nat_dec n n0).
-      rewrite <- e.
-      simpl.
-      destruct (eq_nat_dec n n); auto.
-      simpl.
-      destruct (eq_nat_dec n n0); auto.
+  apply NameSets.F.mem_iff.
+  apply NameSets.EP.add_mem_1.
 Qed.
 
-Lemma mem_tail : forall x y s, NameSets.mem x s = true -> NameSets.mem x (NameSets.add y s) = true.
+Lemma mem_tail_1 : forall x y s, NameSets.In x s -> NameSets.In x (NameSets.add y s).
 Proof.
   intros.
-  destruct x, y.
-  induction s.
-    simpl in H; discriminate.
-    destruct a.
-    simpl.
-    destruct (eq_nat_dec n0 n1).
-      auto.
-      simpl.
-      destruct (eq_nat_dec n n1).
-        auto.
-        apply IHs.
-        simpl in H.
-        destruct (eq_nat_dec n n1).
-          contradiction.
-          auto.
+  apply NameSets.F.mem_iff.
+  apply NameSets.EP.add_mem_3.
+  apply NameSets.F.mem_iff.
+  auto.
 Qed.
 
-Lemma mem_tail_2 : forall x y s, NameSets.mem x (NameSets.add y s) = true ->
+Lemma mem_tail_2 : forall x y s, NameSets.In x (NameSets.add y s) ->
                                  x <> y ->
-                                 NameSets.mem x s = true.
+                                 NameSets.In x s.
 Proof.
   intros.
-  induction s.
-  simpl in H.
-  destruct (NameDecidableType.eq_dec x y).
-    destruct x, y.
-    simpl in e.
-    rewrite name_cons_prop in H0.
-    easy.
-
-    auto.
-  destruct x, y, a.
-  simpl.
-  destruct (eq_nat_dec n n1).
-    auto.
-    apply IHs.
-    simpl in H.
-    destruct (eq_nat_dec n0 n1).
-      simpl in H.
-      destruct (eq_nat_dec n n1).
-        contradiction.
-        apply mem_tail.
-        auto.
-      rewrite name_cons_prop in H0.
-      simpl in H.
-      destruct (eq_nat_dec n n1).
-        contradiction.
-        auto.
+  assert (y <> x).
+    intro.
+    apply H0; auto.
+  apply name_neq_iff in H1.
+  apply NameSets.EP.add_mem_2 with (s := s) in H1.
+  apply NameSets.F.mem_iff.
+  apply NameSets.F.mem_iff in H.
+  rewrite <- H.
+  symmetry.
+  auto.
 Qed.
-
-Lemma union_add : forall x ns1 ns2, NameSets.union (NameSets.add x ns1) ns2 =
-                                    NameSets.add x (NameSets.union ns1 ns2).
-Proof.
-
-  destruct x.
-  induction ns1; induction ns2.
-    compute.
-    auto.
-
-    destruct a.
-    simpl.
-    destruct (eq_nat_dec n n0).
-      rewrite e.
-Admitted.
-
-Lemma union_ns_nil : forall ns, NameSets.union ns nil = ns.
-Proof.
-  intros.
-  induction ns.
-    auto.
-Admitted.
 
 Lemma mem_union : forall ns1 ns2 x,
-                    NameSets.mem x (NameSets.union ns1 ns2) = true <->
-                    NameSets.mem x ns1 = true \/ NameSets.mem x ns2 = true.
+                    NameSets.In x (NameSets.union ns1 ns2) <->
+                    NameSets.In x ns1 \/ NameSets.In x ns2.
 Proof.
   intros.
   split.
     intro.
-    generalize dependent ns2.
-    induction ns1; induction ns2.
-      intro.
-      simpl in H; auto.
-      intro.
-      destruct x, a.
-      simpl in H.
-      destruct (eq_nat_dec n n0).
-        right.
-        rewrite e.
-        simpl.
-        destruct (eq_nat_dec n0 n0).
-          auto.
-          auto.
-        right.
-        simpl.
-        destruct (eq_nat_dec n n0).
-          auto.
-          auto.
+    apply NameSets.F.mem_iff in H.
+    rewrite NameSets.EP.union_mem in H.
+    apply orb_true_iff in H.
+    inversion H.
+    left.
+    apply NameSets.F.mem_iff; auto.
+    right; apply NameSets.F.mem_iff; auto.
 
-      intro.
-      left.
-Admitted.
-
-Lemma mem_remove : forall x y ns, NameSets.mem x ns = true ->
-                                  NameSets.mem x (NameSets.remove y ns) = true \/ x = y.
-Proof.
-  destruct x, y.
-  induction ns.
-    simpl; intro; discriminate.
     intros.
-    destruct a.
-    simpl in H.
-    destruct (eq_nat_dec n n1).
-      rewrite <- e.
-      simpl.
-      destruct (eq_nat_dec n0 n).
-        rewrite e0.
-        right; auto.
-
-        left.
-        simpl.
-        destruct (eq_nat_dec n n); auto.
-      simpl.
-      destruct (eq_nat_dec n0 n1).
-        left; auto.
-        simpl.
-        destruct (eq_nat_dec n n1).
-          left; auto.
-          destruct (eq_nat_dec n n0).
-            right; rewrite e; auto.
-            left.
-            apply IHns in H.
-            inversion H.
-              auto.
-              inversion H0.
-              contradiction.
+    apply NameSets.F.mem_iff.
+    rewrite NameSets.EP.union_mem.
+    apply orb_true_iff.
+    inversion H.
+    left; apply NameSets.F.mem_iff; auto.
+    right; apply NameSets.F.mem_iff; auto.
 Qed.
 
-Lemma inter_empty_not_mem : forall ns1 ns2 x y,
+Lemma mem_remove : forall x y ns,
+                     NameSets.In x ns ->
+                     NameSets.In x (NameSets.remove y ns) \/ x = y.
+Proof.
+  intros.
+  apply NameSets.F.mem_iff in H.
+  destruct (NameDecidableType.eq_dec x y).
+    right; apply name_eq_iff in e; auto.
+    left.
+    apply NameSets.F.mem_iff.
+    rewrite <- H.
+    apply NameSets.EP.remove_mem_2.
+    unfold NameDecidableType.eq in n.
+    destruct x, y.
+    auto.
+Qed.
+
+Lemma inter_empty_not_mem' : forall ns1 ns2 x y,
                               NameSets.inter ns1 ns2 = NameSets.empty ->
                               NameSets.mem x ns1 = true ->
                               NameSets.mem y ns2 = true ->
                               x <> y.
 Proof.
-  induction ns1, ns2; destruct x, y; intros.
-    simpl in H0; discriminate.
-    simpl in H0; discriminate.
-    simpl in H1; discriminate.
-    destruct a, e.
-    simpl in H0.
-    simpl in H1.
-    apply IHns1 with ns2.
-    unfold NameSets.inter in H.
-    simpl in H.
-
-    destruct (eq_nat_dec n n1) eqn:?.
-      destruct (eq_nat_dec n0 n2) eqn:?.
 Admitted.
 
-
 Lemma inter_empty_1 : forall ns1 ns2 x,
-                        NameSets.inter (x :: ns1) ns2 = NameSets.empty ->
+                        NameSets.inter (NameSets.add x ns1) ns2 = NameSets.empty ->
                         NameSets.inter ns1 ns2 = NameSets.empty.
 Proof.
-  induction ns1, ns2; destruct x; intros.
-    compute; auto.
-    simpl; unfold NameSets.empty; auto.
-    compute.
-    compute in H.
-    auto.
-    destruct a, e.
-    unfold NameSets.inter in H.
-    unfold NameSets.inter.
-    simpl in H.
-    simpl.
+  (* induction ns1, ns2; destruct x; intros. *)
+  (*   compute; auto. *)
+  (*   simpl; unfold NameSets.empty; auto. *)
+  (*   compute. *)
+  (*   compute in H. *)
+  (*   auto. *)
+  (*   destruct a, e. *)
+  (*   unfold NameSets.inter in H. *)
+  (*   unfold NameSets.inter. *)
+  (*   simpl in H. *)
+  (*   simpl. *)
 
-    compute.
-    compute in H.
+  (*   compute. *)
+  (*   compute in H. *)
+Admitted.
 
-
-Lemma inter_empty_not_mem_2 : forall ns1 ns2 x,
-                                NameSets.inter ns1 ns2 = NameSets.empty ->
-                                NameSets.mem x ns1 = true ->
-                                NameSets.mem x ns2 = false.
+Lemma empty_mem_false : forall ns,
+                          NameSets.Empty ns ->
+                          forall x, ~ NameSets.In x ns.
 Proof.
-  induction ns1, ns2; destruct x; intros.
-  auto.
-  simpl in H0; discriminate.
-  auto.
-  destruct a, e.
-  apply IHns1.
+  intros.
+  intro.
+  apply NameSets.F.is_empty_iff in H.
+  apply NameSets.F.mem_iff in H0.
+  rewrite NameSets.EP.is_empty_equal_empty in H.
+  apply NameSets.F.equal_iff in H.
+  setoid_rewrite H in H0.
+  compute in H0.
+  discriminate.
+Qed.
 
-
-
-  simpl.
-  destruct (eq_nat_dec n n1).
-    unfold NameSets.inter in H.
-    simpl in H.
-    unfold NameSets.fold in H.
-    unfold fold_left in H.
-    compute in H.
+Lemma inter_empty_not_mem : forall ns1 ns2 x,
+                                NameSets.Empty (NameSets.inter ns1 ns2)->
+                                NameSets.In x ns1 ->
+                                ~ NameSets.In x ns2.
+Proof.
+  intros.
+  intro.
+  apply NameSets.F.mem_iff in H0.
+  apply NameSets.F.mem_iff in H1.
+  assert (NameSets.mem x (NameSets.inter ns1 ns2) = true).
+    rewrite NameSets.EP.inter_mem.
+    rewrite andb_true_iff.
+    split; auto.
+    apply NameSets.P.empty_is_empty_1 in H.
+    setoid_rewrite H in H2.
+    compute in H2.
+    discriminate.
+Qed.
