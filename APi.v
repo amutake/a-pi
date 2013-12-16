@@ -547,9 +547,27 @@ Proof.
         apply IHty1.
           auto.
           auto.
+
+          unfold Fun.fun_plus in H2.
+          unfold Fun.fun_plus in H3.
+          unfold Fun.fun_plus in H4.
+          unfold Fun.fun_plus in H5.
+          unfold Fun.fun_plus in H6.
+          unfold Fun.domain in H7.
+          unfold Fun.domain in H0.
+          destruct (f1 x) eqn:?.
+            induction s.
+              destruct (f1 y) eqn:?.
+                induction s.
+                  auto.
+                  destruct (f2 y) eqn:?.
+                    induction s.
+
+
+
           apply typing_domain_1 with (ns := ns1) (p := p1) in H7.
           apply typing_domain_1 with (ns := ns2) (p := p2) in H0.
-          assert (f1 y = None).
+
 
 
 

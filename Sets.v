@@ -182,3 +182,46 @@ Proof.
     destruct (eq_nat_dec n n1) eqn:?.
       destruct (eq_nat_dec n0 n2) eqn:?.
 Admitted.
+
+
+Lemma inter_empty_1 : forall ns1 ns2 x,
+                        NameSets.inter (x :: ns1) ns2 = NameSets.empty ->
+                        NameSets.inter ns1 ns2 = NameSets.empty.
+Proof.
+  induction ns1, ns2; destruct x; intros.
+    compute; auto.
+    simpl; unfold NameSets.empty; auto.
+    compute.
+    compute in H.
+    auto.
+    destruct a, e.
+    unfold NameSets.inter in H.
+    unfold NameSets.inter.
+    simpl in H.
+    simpl.
+
+    compute.
+    compute in H.
+
+
+Lemma inter_empty_not_mem_2 : forall ns1 ns2 x,
+                                NameSets.inter ns1 ns2 = NameSets.empty ->
+                                NameSets.mem x ns1 = true ->
+                                NameSets.mem x ns2 = false.
+Proof.
+  induction ns1, ns2; destruct x; intros.
+  auto.
+  simpl in H0; discriminate.
+  auto.
+  destruct a, e.
+  apply IHns1.
+
+
+
+  simpl.
+  destruct (eq_nat_dec n n1).
+    unfold NameSets.inter in H.
+    simpl in H.
+    unfold NameSets.fold in H.
+    unfold fold_left in H.
+    compute in H.
