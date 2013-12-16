@@ -1,4 +1,4 @@
-Require Import Coq.Logic.FunctionalExtensionality Sets Fun Tuples.
+Require Import Coq.Logic.FunctionalExtensionality Coq.Arith.EqNat Coq.MSets.MSets Names Sets Fun Tuples.
 
 Inductive config : Set :=
   | nil : config
@@ -7,37 +7,13 @@ Inductive config : Set :=
   | restrict : name -> config -> config
   | compose : config -> config -> config.
 
-Lemma diff_subset : forall (ns1 ns2 : NameSets.t),
-  NameSets.subset (NameSets.diff ns1 ns2) ns1 = true.
-Proof.
-  intros.
-  unfold NameSets.Ok.
-
-
-  induction ns1.
-    induction ns2.
-      auto.
-
-      assert (forall ns : NameSets.t, NameSets.diff Datatypes.nil ns = Datatypes.nil).
-      intro.
-      induction ns.
-        auto.
-        auto.
-      rewrite H.
-      auto.
-
-    assert (forall (ns1 ns2 : NameSets.t) (x : name), NameSets.subset ns1 ns2 = true -> NameSets.subset ns1 (x :: ns2)%list = true).
-    intros.
-Admitted.
-
 Reserved Notation "ns ';' f '|-' p" (at level 40).
 
 Inductive typing : NameSets.t -> Fun.temp_name_mapping -> config -> Prop :=
   | NIL : NameSets.empty ; Fun.empty |- nil
   | MSG : forall x y : name, NameSets.empty ; Fun.empty |- send x y
-  | ACT_empty : forall (f : Fun.temp_name_mapping) (p : config) (x y : name), (* x /= y? *)
-                  NameSets.empty ; f |- p ->
-                  f = Fun.empty ->
+  | ACT_empty : forall (p : config) (x y : name), (* x /= y? *)
+                  NameSets.empty ; Fun.empty |- p ->
                   NameSets.singleton x ; Tuple.ch (Tuple.singleton x) |- create x y p
   | ACT_x : forall (f : Fun.temp_name_mapping) (p : config) (x y : name),
               NameSets.singleton x ; f |- p ->
@@ -64,7 +40,7 @@ Inductive typing : NameSets.t -> Fun.temp_name_mapping -> config -> Prop :=
              NameSets.union ns1 ns2 ; Fun.fun_plus f1 f2 |- compose p1 p2
   | RES : forall (ns : NameSets.t) (f : Fun.temp_name_mapping) (p : config) (x : name),
             ns ; f |- p ->
-            NameSets.diff ns (NameSets.singleton x) ; Fun.fun_diff f (NameSets.diff ns (NameSets.singleton x)) |- restrict x p
+            NameSets.diff ns (NameSets.singleton x) ; Fun.fun_remove f x |- restrict x p
   where "ns ';' f '|-' p" := (typing ns f p).
 
 Goal exists (ns : NameSets.t) (f : Fun.temp_name_mapping), ns ; f |- create (name_cons 0) (name_cons 1) nil.
@@ -169,106 +145,96 @@ Proof.
   apply NIL.
   auto.
 
-  Focus 2.
-    auto.
-  Focus 2.
-    unfold Fun.fun_plus.
-    apply functional_extensionality.
-    intros.
-    destruct x; induction n.
-      auto.
-      auto.
-  Focus 2.
-    auto.
-
   apply functional_extensionality.
   intro.
   destruct x; induction n.
     auto.
-
-    compute.
-
-  compute.
+    induction n.
+      auto.
+      rewrite <- Tuple.ch_S.
+      rewrite <- Tuple.ch_S.
+      induction n.
+      auto.
+      apply Tuple.ch_singleton_None.
+      unfold not.
+      intro.
+      inversion H.
 
   auto.
+  unfold Fun.fun_plus.
   apply functional_extensionality.
   intros.
   destruct x; induction n.
-    unfold Fun.fun_plus.
     auto.
-  unfold Fun.fun_plus.
-  unfold Tuple.ch.
-  compute.
+    auto.
+  auto.
+Qed.
 
-  assert (forall x : name,
-            (fun x : name => match x with
-                               | name_cons 0 => Some star_bottom
-                               | name_cons 2 => Some star_bottom
-                               | _ => None
-                             end) x =
-            Fun.fun_plus (fun x => match x with
-                                     | name_cons 0 => Some star_bottom
-                                     | _ => None
-                                   end)
-                         (fun x => match x with
-                                     | name_cons 2 => Some star_bottom
-                                     | _ => None
-                                   end) x).
+Lemma typing_domain : forall ns f p (ty : ns ; f |- p) x,
+                        Fun.domain f x <->
+                        NameSets.mem x ns = true.
+Proof.
+  split.
     intros.
-    destruct x.
-    induction n.
-      unfold Fun.fun_plus.
+    induction ty.
+      unfold Fun.domain in H.
+      compute in H.
       auto.
-    auto.
 
-  apply functional_extensionality in H0.
-  rewrite H.
-  rewrite H0.
-  eapply COMP.
+      unfold Fun.domain in H.
+      compute in H.
+      auto.
 
-  assert (forall n : name, NameSets.singleton n = NameSets.union (NameSets.singleton n) (Option.to_set None)).
-    auto.
-  assert (forall n x,
-            (fun x : name =>
-            match beq_name x n with
-              | true => Some star_bottom
-              | false => None
-            end) x =
-            Tuple.ch (Tuple.append (Tuple.singleton n) (Option.to_tuple None)) x).
-    intro.
-    destruct n.
-    induction n.
-      intro.
+      apply Tuple.ch_singleton_domain in H.
+      rewrite H.
       destruct x.
-      induction n.
-        auto.
-        auto.
+      simpl.
+      destruct (Peano_dec.eq_nat_dec n n); auto.
+
+      apply Tuple.ch_singleton_domain in H.
+      rewrite H.
       destruct x.
-      induction n0.
-        auto.
-        assert (beq_name (name_cons (S n0)) (name_cons (S n)) = beq_name (name_cons n0) (name_cons n)).
-          auto.
-        rewrite H2.
-        rewrite IHn.
+      simpl.
+      destruct (Peano_dec.eq_nat_dec n n); auto.
+
+      apply Tuple.ch_domain in H.
+      inversion H.
+        rewrite H3.
         simpl.
-        assert (forall (n : nat) (na na' : name),
-                  (match n + 1 with
-                     | 0 => Some na
-                     | 1 => None
-                     | S (S _) => None
-                   end) =
-                  (match n + 1 with
-                     | 0 => Some na'
-                     | 1 => None
-                     | S (S _) => None
-                   end)).
-          intro.
-          induction n1.
-            auto.
-            auto.
-        (* rewrite H3. *)
+        destruct (NameDecidableType.eq_dec x z) eqn:?.
+          rewrite H3 in H0.
+          destruct x, z.
+          simpl in e.
+          rewrite name_cons_prop in H0.
+          auto.
 
-Admitted.
+          simpl.
+          rewrite Heqs.
+          destruct (NameDecidableType.eq_dec x x) eqn:?.
+            auto.
+            destruct x.
+            unfold NameDecidableType.eq in n0.
+            auto.
+            apply Tuple.tuple_domain_mem in H3.
+            simpl in H3.
+            destruct (NameDecidableType.eq_dec x z).
+              destruct x, z.
+              simpl in e.
+              rewrite e.
+              simpl.
+              destruct (NameDecidableType.eq_dec x0 (name_cons n0)).
+                simpl.
+                destruct (Peano_dec.eq_nat_dec n0 n0); auto.
+                destruct x0.
+                simpl.
+                destruct (Peano_dec.eq_nat_dec n0 n0); auto.
+          discriminate.
+          apply IHty.
+          auto.
+
+
+
+
 
 
 Definition replace (x y z : name) : name :=
@@ -317,6 +283,9 @@ Proof.
   auto.
 Qed.
 
+Lemma config_free_names_create : forall (p : config) (x y : name),
+                                   config_free_names (create x y p) = NameSets.add x (config_free_names p).
+
 Fixpoint config_bound_names (c : config) : NameSets.t :=
   match c with
     | nil => NameSets.empty
@@ -333,30 +302,198 @@ Lemma config_subset : forall (ns : NameSets.t) (f : Fun.temp_name_mapping) (p : 
 Proof.
   intros.
   unfold ConfigSubset.
-  unfold config_free_names.
   induction ty.
     auto.
 
     auto.
 
-    simpl.
+    inversion ty.
+      assert (config_free_names (create x y nil) = NameSets.singleton x).
+        compute.
+        auto.
+      rewrite H.
+
+
 
 Admitted.
 
-Definition FunctionProperty {ns : NameSets.t} {f : function ns} {p : config} (ty : ns ; f |- p) : Prop :=
-  Fun_prop f.
+Definition FunctionProperty {ns : NameSets.t} {f : Fun.temp_name_mapping} {p : config} (ty : ns ; f |- p) : Prop :=
+  Fun.Fun_prop f.
 
-Lemma function_property : forall (ns : NameSets.t) (f : function ns) (p : config) (ty : ns ; f |- p), FunctionProperty ty.
+Lemma function_property1 : forall (ns : NameSets.t) (f : Fun.temp_name_mapping) (p : config) (ty : ns ; f |- p), Fun.Fun_prop1 f.
 Proof.
-  unfold FunctionProperty.
-  unfold Fun_prop.
+  unfold Fun.Fun_prop1.
+  unfold not.
   intros.
   induction ty.
-    inversion H2.
+    compute in H; discriminate.
+    compute in H; discriminate.
+    apply Tuple.ch_singleton_not_name with x0 x x; auto.
+    apply Tuple.ch_singleton_not_name with x0 x x; auto.
+    destruct (NameDecidableType.eq_dec x x0).
+      destruct (NameDecidableType.eq_dec x z).
+        destruct x, x0, z.
+        simpl in e.
+        simpl in e0.
+        apply H0.
+        apply name_cons_prop.
+        rewrite <- e; auto.
 
-    inversion H2.
+        destruct x, x0, z.
+        simpl in e, n.
+        rewrite e in H.
+        assert (Tuple.ch (Tuple.add (name_cons n1) (Tuple.singleton (name_cons n2))) (name_cons n1) = Some (star_name (name_cons n2))).
+          induction n1.
+            compute; auto.
+            compute.
+            rewrite <- beq_nat_refl; auto.
+        rewrite H in H3.
+        inversion H3.
+        rewrite H5 in e.
+        auto.
+      destruct (NameDecidableType.eq_dec x z).
+        destruct x, x0, z.
+        simpl in n, e.
+        rewrite e in H.
+        rewrite e in n.
+        assert (forall x y, x <> y -> Tuple.ch (Tuple.add x (Tuple.singleton y)) y = Some star_bottom).
+          destruct x, y0.
+          generalize dependent n4.
+          induction n3, n4.
+            intro; exfalso; auto.
+            intro.
+            compute.
+            rewrite <- beq_nat_refl.
+            auto.
+            intro.
+            compute.
+            auto.
+            intro.
+            rewrite name_cons_prop in H3.
+            compute.
+            rewrite <- beq_nat_refl.
+Admitted.
 
-    apply IHty.
+Lemma function_property2 : forall (ns : NameSets.t) (f : Fun.temp_name_mapping) (p : config) (ty : ns ; f |- p), Fun.Fun_prop2 f.
+Proof.
+  unfold Fun.Fun_prop2.
+  intros ns f p ty.
+  induction ty.
+    intros; exfalso; apply H; auto.
+    intros; exfalso; apply H; auto.
+
+    intros.
+    apply Tuple.ch_singleton_domain in H.
+    apply Tuple.ch_singleton_domain in H0.
+    rewrite <- H0; auto.
+
+    intros.
+    apply Tuple.ch_singleton_domain in H1.
+    apply Tuple.ch_singleton_domain in H2.
+    rewrite <- H1; auto.
+
+    intros.
+    apply Tuple.ch_domain in H2.
+    apply Tuple.ch_domain in H3.
+    inversion_clear H2.
+      inversion_clear H3.
+        rewrite <- H9; rewrite <- H2; auto.
+        apply Tuple.ch_domain in H2.
+        inversion_clear H2.
+          rewrite <- H9 in H4.
+          rewrite <- H3 in H4.
+          simpl in H4.
+          rewrite beq_name_refl in H4.
+          apply beq_name_false_iff in H.
+          rewrite beq_name_sym in H.
+          rewrite H in H4.
+          rewrite beq_name_refl in H4.
+          discriminate.
+          apply Tuple.ch_domain_empty in H3.
+          contradiction.
+      inversion_clear H3.
+        apply Tuple.ch_domain in H9.
+        inversion_clear H9.
+          rewrite <- H2 in H4.
+          rewrite <- H3 in H4.
+          simpl in H4.
+          apply beq_name_false_iff in H.
+          rewrite H in H4.
+          rewrite beq_name_sym in H.
+          rewrite H in H4.
+          rewrite beq_name_refl in H4.
+          symmetry in H4.
+          rewrite beq_name_refl in H4.
+          discriminate.
+
+          apply Tuple.ch_domain_empty in H3.
+          contradiction.
+        apply Tuple.ch_domain in H9.
+        apply Tuple.ch_domain in H2.
+        inversion_clear H9.
+          inversion_clear H2.
+            rewrite <- H3; rewrite <- H9; auto.
+            apply Tuple.ch_domain_empty in H9; contradiction.
+          inversion_clear H2.
+            apply Tuple.ch_domain_empty in H3; contradiction.
+            apply Tuple.ch_domain_empty in H3; contradiction.
+    intros.
+    subst.
+    apply Tuple.ch_domain in H3.
+    apply Tuple.ch_domain in H4.
+    inversion_clear H3.
+      inversion_clear H4.
+        rewrite <- H2; rewrite <- H3; auto.
+        apply Tuple.ch_singleton_domain in H3.
+        rewrite <- H2 in H5.
+        rewrite <- H3 in H5.
+        simpl in H5.
+        apply beq_name_false_iff in H.
+        rewrite H in H5.
+        rewrite beq_name_sym in H.
+        rewrite H in H5.
+        rewrite beq_name_refl in H5.
+        symmetry in H5.
+        rewrite beq_name_refl in H5.
+        discriminate.
+
+      inversion_clear H4.
+        apply Tuple.ch_singleton_domain in H2.
+        rewrite <- H2 in H5.
+        rewrite <- H3 in H5.
+        simpl in H5.
+        apply beq_name_false_iff in H.
+        rewrite H in H5.
+        rewrite beq_name_sym in H.
+        rewrite H in H5.
+        rewrite beq_name_refl in H5.
+        symmetry in H5.
+        rewrite beq_name_refl in H5.
+        discriminate.
+
+        apply Tuple.ch_singleton_domain in H2.
+        apply Tuple.ch_singleton_domain in H3.
+        rewrite <- H2.
+        rewrite <- H3.
+        auto.
+
+    intros; subst.
+    apply Fun.fun_plus_domain in H0.
+    apply Fun.fun_plus_domain in H1.
+    inversion_clear H0.
+      inversion_clear H1.
+        apply IHty1.
+          auto.
+          auto.
+
+
+
+Lemma function_property : forall (ns : NameSets.t) (f : Fun.temp_name_mapping) (p : config) (ty : ns ; f |- p), FunctionProperty ty.
+Proof.
+  unfold FunctionProperty.
+  unfold Fun.Fun_prop.
+  intros.
+
 Admitted.
 
 

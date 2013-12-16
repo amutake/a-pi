@@ -1,4 +1,4 @@
-Require Import Coq.Lists.List Sets.
+Require Import Coq.Lists.List Names Sets.
 
 Module Fun.
 
@@ -10,6 +10,8 @@ Module Fun.
   Definition temp_name_mapping := name -> option star.
 
   Definition temp_name_mapping_star := star -> option star.
+
+  Definition domain (f : temp_name_mapping) (x : name) := f x <> None.
 
   Definition to_star_function (f : temp_name_mapping) : temp_name_mapping_star :=
     fun s : star =>
@@ -37,6 +39,39 @@ Module Fun.
         | None => f2 x
       end.
 
+  Lemma fun_plus_domain : forall f1 f2 x, domain (fun_plus f1 f2) x <-> domain f1 x \/ domain f2 x.
+  Proof.
+    unfold domain.
+    split.
+      intro.
+      unfold fun_plus in H.
+      destruct (f1 x) eqn:?.
+        induction s.
+          left; auto.
+          destruct (f2 x) eqn:?.
+            right; auto.
+            left; auto.
+          left; auto.
+          right; auto.
+      intro.
+      unfold fun_plus.
+      inversion H.
+        destruct (f1 x) eqn:?.
+          induction s.
+            auto.
+            destruct (f2 x) eqn:?; intro; discriminate.
+            auto.
+          exfalso; apply H0; auto.
+        destruct (f1 x).
+          destruct s.
+            intro; discriminate.
+            destruct (f2 x).
+              auto.
+              auto.
+            intro; discriminate.
+          auto.
+  Qed.
+
   (* f : rho -> rho*, fun_diff f rho' : (rho - rho') -> (rho - rho')* *)
   Definition fun_diff (f : temp_name_mapping) (ns : NameSets.t) : temp_name_mapping :=
     fun x : name =>
@@ -44,6 +79,93 @@ Module Fun.
         | true => Some star_star
         | false => f x
       end.
+
+  Definition fun_remove f x : temp_name_mapping :=
+    fun y : name =>
+      if beq_name y x
+      then None
+      else
+        match f y with
+          | Some (star_name n) =>
+            if beq_name n x
+            then Some star_star
+            else Some (star_name n)
+          | a => a
+        end.
+
+  Goal forall x y z f, x <> y -> y <> z -> z <> x ->
+         f = (fun a =>
+            if beq_name a x then Some (star_name y) else
+              if beq_name a y then Some (star_name z) else
+                if beq_name a z then Some star_bottom else None) ->
+         fun_remove f z z = None /\
+         fun_remove f z y = Some star_star /\
+         fun_remove f z x = Some (star_name y).
+  Proof.
+    intros.
+    split.
+      unfold fun_remove.
+      rewrite beq_name_refl.
+      auto.
+
+      split.
+        unfold fun_remove.
+        apply beq_name_false_iff in H0.
+        rewrite H0.
+        rewrite H2.
+        apply beq_name_false_iff in H.
+        rewrite beq_name_sym in H.
+        rewrite H.
+        rewrite beq_name_refl.
+        rewrite beq_name_refl.
+        auto.
+
+        unfold fun_remove.
+        rewrite H2.
+        apply beq_name_false_iff in H1.
+        rewrite beq_name_sym in H1.
+        rewrite H1.
+        rewrite beq_name_refl.
+        apply beq_name_false_iff in H0.
+        rewrite H0.
+        auto.
+  Qed.
+
+  Lemma fun_remove_domain : forall f x y, domain f x <-> domain (fun_remove f y) x \/ x = y.
+  Proof.
+    unfold domain.
+    unfold fun_remove.
+    split.
+      intros.
+      destruct (beq_name x y) eqn:?.
+        apply beq_name_true_iff in Heqb.
+        right; auto.
+
+        destruct (f x).
+          destruct s.
+            left.
+            destruct (beq_name n y); easy.
+            left; easy.
+            left; easy.
+            auto.
+      intros.
+      destruct (f x) eqn:?.
+      easy.
+      destruct (beq_name x y) eqn:?.
+
+      inversion H; auto.
+        Focus 2.
+        inversion H.
+        auto.
+        apply beq_name_false_iff in Heqb.
+        easy.
+        destruct (beq_name x y) eqn:?.
+          auto.
+          destruct (f x).
+            easy.
+            auto.
+        rewrite H0 in H.
+  Admitted.
 
   Definition fun_join (f : temp_name_mapping) : temp_name_mapping :=
     fun x : name =>
@@ -55,16 +177,26 @@ Module Fun.
   Definition Fun_comm (f1 : temp_name_mapping) (f2 : temp_name_mapping) :=
     forall (x : name), fun_plus f1 f2 x = fun_plus f2 f1 x.
 
+  (* f(x) /= x *)
+  Definition Fun_prop1 (f : temp_name_mapping) :=
+    forall x : name, f x <> Some (star_name x).
+
+  (* f(x) = f(y) and is not member of {_|_, *} -> x = y *)
+  Definition Fun_prop2 (f : temp_name_mapping) :=
+    forall (x y : name), domain f x -> domain f y ->
+                         f x = f y ->
+                         f x <> Some star_bottom ->
+                         f x <> Some star_star ->
+                         f y <> Some star_bottom ->
+                         f y <> Some star_star ->
+                         x = y.
+
+  (* f*(f(x)) = _|_ *)
+  Definition Fun_prop3 (f : temp_name_mapping) :=
+    forall x, domain f x -> fun_join f x = Some star_bottom.
+
   Definition Fun_prop (f : temp_name_mapping) :=
-    forall (x y : name),
-      f x <> Some (star_name x) /\ (* f(x) /= x *)
-      (f x = f y ->
-       f x <> Some star_bottom ->
-       f x <> Some star_star ->
-       f y <> Some star_bottom ->
-       f y <> Some star_star ->
-       x = y) /\ (* f(x) = f(y) and is not member of {_|_, *} -> x = y *)
-      fun_join f x = Some star_bottom.
+    Fun_prop1 f /\ Fun_prop2 f /\ Fun_prop3 f.
 
   Record Compatible (f1 : temp_name_mapping) (f2 : temp_name_mapping) := Build_compatible {
     Compatible_comm : Fun_comm f1 f2;

@@ -1,65 +1,5 @@
 Require Import
-        Coq.MSets.MSets Coq.Arith.Peano_dec Coq.Arith.Compare_dec Coq.Arith.EqNat.
-
-Inductive name :=
-  | name_cons : nat -> name.
-
-Definition beq_name (n1 n2 : name) : bool :=
-  match n1, n2 with
-    | name_cons n1', name_cons n2' => beq_nat n1' n2'
-  end.
-
-Inductive star :=
-  | star_name : name -> star
-  | star_bottom : star
-  | star_star : star.
-
-Definition beq_star (s1 s2 : star) : bool :=
-  match s1, s2 with
-    | star_name n1, star_name n2 => beq_name n1 n2
-    | star_bottom, star_bottom => true
-    | star_star, star_star => true
-    | _, _ => false
-  end.
-
-Module NameDecidableType <: DecidableType.
-
-  Definition t := name.
-  Definition eq (name1 name2 : name) :=
-    match name1, name2 with
-      | name_cons n1, name_cons n2 => n1 = n2
-    end.
-  Lemma name_refl : Reflexive eq.
-  Proof.
-    unfold Reflexive.
-    intros.
-    destruct x.
-    simpl.
-    auto.
-  Qed.
-  Lemma name_sym : Symmetric eq.
-  Proof.
-    unfold Symmetric.
-    intros.
-    destruct x, y.
-    simpl; simpl in H.
-    auto.
-  Qed.
-  Lemma name_trans : Transitive eq.
-  Proof.
-    unfold Transitive.
-    intros.
-    destruct x, y, z.
-    simpl; simpl in H, H0.
-    rewrite H; rewrite H0; auto.
-  Qed.
-  Definition eq_equiv :=
-    Build_Equivalence t eq name_refl name_sym name_trans.
-  Definition eq_dec (x y : t) : {eq x y} + {~ eq x y} :=
-    match x, y with
-      | name_cons x', name_cons y' => eq_nat_dec x' y'
-    end.
-End NameDecidableType.
+        Coq.MSets.MSets Coq.Arith.Peano_dec Coq.Arith.Compare_dec Coq.Arith.EqNat Names.
 
 Module StarDecidableType <: DecidableType.
 
@@ -202,5 +142,148 @@ Module NameOrderedType <: OrderedType.
   Qed.
 End NameOrderedType.
 
-Module NameSets := MSetWeakList.MakeRaw(NameDecidableType).
-Module StarSets := MSetWeakList.MakeRaw(StarDecidableType).
+(* Module NameSets := MSetWeakList.MakeRaw(NameDecidableType). *)
+(* Module StarSets := MSetWeakList.MakeRaw(StarDecidableType). *)
+
+Module StarSets := MSetWeakList.Make(StarDecidableType).
+
+Module NameSets.
+  Module M := MSetWeakList.Make(NameDecidableType).
+  Module P := WPropertiesOn(NameDecidableType)(M).
+  Module F := WFactsOn(NameDecidableType)(M).
+  Include M.
+End NameSets.
+
+Lemma mem_head : forall x s, NameSets.In x (NameSets.add x s). (* NameSets.mem x (NameSets.add x s) = true. *)
+Proof.
+  intros.
+  destruct x.
+  destruct s.
+  induction this.
+    compute.
+    destruct (eq_nat_dec n n); auto.
+
+    destruct a.
+    apply IHthis.
+    compute.
+    destruct (eq_nat_dec n n0).
+      rewrite <- e.
+      simpl.
+      destruct (eq_nat_dec n n); auto.
+      simpl.
+      destruct (eq_nat_dec n n0); auto.
+Qed.
+
+Lemma mem_tail : forall x y s, NameSets.mem x s = true -> NameSets.mem x (NameSets.add y s) = true.
+Proof.
+  intros.
+  destruct x, y.
+  induction s.
+    simpl in H; discriminate.
+    destruct a.
+    simpl.
+    destruct (eq_nat_dec n0 n1).
+      auto.
+      simpl.
+      destruct (eq_nat_dec n n1).
+        auto.
+        apply IHs.
+        simpl in H.
+        destruct (eq_nat_dec n n1).
+          contradiction.
+          auto.
+Qed.
+
+Lemma mem_tail_2 : forall x y s, NameSets.mem x (NameSets.add y s) = true ->
+                                 x <> y ->
+                                 NameSets.mem x s = true.
+Proof.
+  intros.
+  induction s.
+  simpl in H.
+  destruct (NameDecidableType.eq_dec x y).
+    destruct x, y.
+    simpl in e.
+    rewrite name_cons_prop in H0.
+    easy.
+
+    auto.
+  destruct x, y, a.
+  simpl.
+  destruct (eq_nat_dec n n1).
+    auto.
+    apply IHs.
+    simpl in H.
+    destruct (eq_nat_dec n0 n1).
+      simpl in H.
+      destruct (eq_nat_dec n n1).
+        contradiction.
+        apply mem_tail.
+        auto.
+      rewrite name_cons_prop in H0.
+      simpl in H.
+      destruct (eq_nat_dec n n1).
+        contradiction.
+        auto.
+Qed.
+
+Lemma union_add : forall In
+
+Lemma union_add : forall x ns1 ns2, NameSets.union (NameSets.add x ns1) ns2 =
+                                    NameSets.add x (NameSets.union ns1 ns2).
+Proof.
+
+  destruct x.
+  induction ns1; induction ns2.
+    compute.
+    auto.
+
+    destruct a.
+    simpl.
+    destruct (eq_nat_dec n n0).
+      rewrite e.
+
+
+
+
+
+
+
+Lemma union_ns_nil : forall ns, NameSets.union ns nil = ns.
+Proof.
+  intros.
+  induction ns.
+    auto.
+    rewrite union_add.
+
+
+
+Lemma mem_union : forall ns1 ns2 x,
+                    NameSets.mem x (NameSets.union ns1 ns2) = true <->
+                    NameSets.mem x ns1 = true \/ NameSets.mem x ns2 = true.
+Proof.
+  intros.
+  split.
+    intro.
+    generalize dependent ns2.
+    induction ns1; induction ns2.
+      intro.
+      simpl in H; auto.
+      intro.
+      destruct x, a.
+      simpl in H.
+      destruct (eq_nat_dec n n0).
+        right.
+        rewrite e.
+        simpl.
+        destruct (eq_nat_dec n0 n0).
+          auto.
+          auto.
+        right.
+        simpl.
+        destruct (eq_nat_dec n n0).
+          auto.
+          auto.
+
+      intro.
+      left.
