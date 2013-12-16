@@ -1,11 +1,6 @@
-Require Import Coq.Lists.List Names Sets.
+Require Import Coq.Lists.List Names.
 
 Module Fun.
-
-  Definition to_star (ns : NameSets.t) : StarSets.t :=
-    StarSets.add star_bottom (StarSets.add star_star (map star_name ns)).
-
-  Definition to_star' (ns : NameSets.t) : StarSets.t := map star_name ns.
 
   Definition temp_name_mapping := name -> option star.
 
@@ -71,14 +66,6 @@ Module Fun.
             intro; discriminate.
           auto.
   Qed.
-
-  (* f : rho -> rho*, fun_diff f rho' : (rho - rho') -> (rho - rho')* *)
-  Definition fun_diff (f : temp_name_mapping) (ns : NameSets.t) : temp_name_mapping :=
-    fun x : name =>
-      match NameSets.mem x ns with
-        | true => Some star_star
-        | false => f x
-      end.
 
   Definition fun_remove f x : temp_name_mapping :=
     fun y : name =>
