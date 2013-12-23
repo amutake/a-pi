@@ -67,6 +67,50 @@ Module Fun.
           auto.
   Qed.
 
+  Lemma fun_plus_not_domain : forall f1 f2 x, ~ domain (fun_plus f1 f2) x <-> ~ domain f1 x /\ ~ domain f2 x.
+  Proof.
+    unfold domain.
+    split.
+      intros.
+      split.
+      intro.
+      apply H.
+      intro.
+      unfold fun_plus in H1.
+      apply H0.
+      destruct (f1 x) eqn:?.
+        destruct s eqn:?.
+          discriminate.
+          destruct (f2 x) eqn:?.
+            discriminate.
+            discriminate.
+          discriminate.
+        auto.
+      intro.
+      apply H.
+      intro.
+      unfold fun_plus in H1.
+      apply H0.
+      destruct (f1 x) eqn:?.
+        destruct s eqn:?.
+          discriminate.
+          destruct (f2 x) eqn:?.
+            discriminate.
+            discriminate.
+          discriminate.
+        auto.
+
+      intros.
+      inversion H.
+      intro.
+      unfold fun_plus in H2.
+      apply H0.
+      intro.
+      rewrite H3 in H2.
+      apply H1.
+      auto.
+  Qed.
+
   Definition fun_remove f x : temp_name_mapping :=
     fun y : name =>
       if beq_name y x
@@ -152,6 +196,42 @@ Module Fun.
       destruct (beq_name x y); auto.
   Qed.
 
+  Lemma fun_remove_not_domain_1 : forall f x y, ~ domain f x -> ~ domain (fun_remove f y) x.
+  Proof.
+    unfold domain.
+    intros.
+    unfold fun_remove.
+    intro.
+    destruct (beq_name x y) eqn:?.
+      apply H0; auto.
+      apply H.
+      intro.
+      rewrite H1 in H0.
+      apply H0; auto.
+  Qed.
+
+  Lemma fun_remove_not_domain_2 : forall f x y, ~ domain (fun_remove f y) x -> x = y \/ ~ domain f x.
+  Proof.
+    unfold domain.
+    unfold fun_remove.
+    intros.
+    destruct (beq_name x y) eqn:?.
+      apply beq_name_true_iff in Heqb.
+      left; auto.
+
+      right.
+      intro.
+      apply H.
+      destruct (f x) eqn:?.
+        destruct s eqn:?.
+          destruct (beq_name n y) eqn:?.
+            intro; discriminate.
+            intro; discriminate.
+          intro; discriminate.
+          intro; discriminate.
+        auto.
+  Qed.
+
   Definition fun_join (f : temp_name_mapping) : temp_name_mapping :=
     fun x : name =>
       match f x with
@@ -190,20 +270,9 @@ Module Fun.
 
   Definition empty : temp_name_mapping := fun _ => None.
 
+  (* ch_empty *)
+
   Definition ch_empty := empty.
-
-  Definition ch_singleton (n : name) : temp_name_mapping :=
-    fun x => if beq_name n x
-             then Some star_bottom
-             else None.
-
-  Definition ch_two (n m : name) : temp_name_mapping :=
-    fun x =>
-      if beq_name n x
-      then Some (star_name m)
-      else if beq_name m x
-           then Some star_bottom
-           else None.
 
   Lemma ch_empty_prop_1 : Fun_prop1 ch_empty.
   Proof.
@@ -238,6 +307,71 @@ Module Fun.
     split.
     apply ch_empty_prop_2.
     apply ch_empty_prop_3.
+  Qed.
+
+  (* ch_singleton *)
+
+  Definition ch_singleton (n : name) : temp_name_mapping :=
+    fun x => if beq_name n x
+             then Some star_bottom
+             else None.
+
+  Lemma ch_singleton_domain : forall x y, domain (ch_singleton x) y <-> x = y.
+  Proof.
+    unfold domain.
+    unfold ch_singleton.
+    intros.
+    destruct (beq_name x y) eqn:?.
+      apply beq_name_true_iff in Heqb.
+      rewrite Heqb.
+      split.
+        intro; auto.
+        intro; intro; discriminate.
+      split.
+        intro; exfalso.
+        apply H; auto.
+        intro; apply beq_name_false_iff in Heqb.
+        contradiction.
+  Qed.
+
+  Lemma ch_singleton_not_domain : forall x y, ~ domain (ch_singleton x) y <-> x <> y.
+  Proof.
+    unfold domain.
+    unfold ch_singleton.
+    intros.
+    destruct (beq_name x y) eqn:?.
+      apply beq_name_true_iff in Heqb.
+      rewrite Heqb.
+      split.
+        intro; intro.
+        unfold not in H.
+        apply H.
+        intro.
+        discriminate.
+
+        intro.
+        exfalso; apply H; auto.
+
+      split.
+        intro; intro.
+        apply beq_name_false_iff in Heqb.
+        auto.
+
+        intro.
+        intro.
+        apply H0; auto.
+  Qed.
+
+  Lemma ch_singleton_not_name : forall x y z, ch_singleton x y <> Some (star_name z).
+  Proof.
+    unfold ch_singleton.
+    intros.
+    destruct (beq_name x y) eqn:?.
+      intro.
+      discriminate.
+
+      intro.
+      discriminate.
   Qed.
 
   Lemma ch_singleton_prop_1 : forall n, Fun_prop1 (ch_singleton n).
@@ -294,6 +428,92 @@ Module Fun.
     split.
     apply ch_singleton_prop_2.
     apply ch_singleton_prop_3.
+  Qed.
+
+  (* ch_two *)
+
+  Definition ch_two (n m : name) : temp_name_mapping :=
+    fun x =>
+      if beq_name n x
+      then Some (star_name m)
+      else if beq_name m x
+           then Some star_bottom
+           else None.
+
+  Theorem ch_two_domain : forall x y z, domain (ch_two x y) z <-> x = z \/ y = z.
+  Proof.
+    split.
+    intros.
+
+    unfold domain in H.
+    unfold ch_two in H.
+    destruct (beq_name x z) eqn:?.
+      apply beq_name_true_iff in Heqb.
+      left; auto.
+
+      destruct (beq_name y z) eqn:?.
+        apply beq_name_true_iff in Heqb0.
+        right; auto.
+
+        exfalso; apply H; auto.
+    intro.
+    unfold domain.
+    unfold ch_two.
+    inversion H.
+      rewrite <- H0.
+      rewrite beq_name_refl.
+      intro; discriminate.
+
+      rewrite H0.
+      destruct (beq_name x z) eqn:?.
+        intro; discriminate.
+        rewrite beq_name_refl.
+        intro; discriminate.
+  Qed.
+
+  Lemma ch_two_not_domain : forall x y z, ~ domain (ch_two x y) z <-> x <> z /\ y <> z.
+  Proof.
+    unfold domain.
+    unfold ch_two.
+    intros.
+    destruct (beq_name x z) eqn:?.
+      apply beq_name_true_iff in Heqb.
+      rewrite Heqb.
+      split; try split.
+        exfalso; apply H.
+        intro; discriminate.
+
+        exfalso; apply H; intro; discriminate.
+
+        intro.
+        inversion H.
+        exfalso; apply H0; auto.
+      split; try split.
+        destruct (beq_name y z) eqn:?.
+          apply beq_name_true_iff in Heqb0.
+          intro.
+          rewrite H0 in Heqb.
+          rewrite beq_name_refl in Heqb.
+          discriminate.
+
+          intro.
+          rewrite H0 in Heqb.
+          rewrite beq_name_refl in Heqb.
+          discriminate.
+
+        intro.
+        rewrite H0 in H.
+        rewrite beq_name_refl in H.
+        apply H; intro.
+        discriminate.
+
+        intros.
+        inversion H.
+        intro.
+        destruct (beq_name y z) eqn:?.
+        apply beq_name_true_iff in Heqb0.
+        auto.
+        apply H2; auto.
   Qed.
 
   Lemma ch_two_prop_1 : forall n m, n <> m -> Fun_prop1 (ch_two n m).
