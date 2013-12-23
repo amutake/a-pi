@@ -190,4 +190,190 @@ Module Fun.
 
   Definition empty : temp_name_mapping := fun _ => None.
 
+  Definition ch_empty := empty.
+
+  Definition ch_singleton (n : name) : temp_name_mapping :=
+    fun x => if beq_name n x
+             then Some star_bottom
+             else None.
+
+  Definition ch_two (n m : name) : temp_name_mapping :=
+    fun x =>
+      if beq_name n x
+      then Some (star_name m)
+      else if beq_name m x
+           then Some star_bottom
+           else None.
+
+  Lemma ch_empty_prop_1 : Fun_prop1 ch_empty.
+  Proof.
+    unfold Fun_prop1.
+    intro.
+    intro.
+    compute in H.
+    discriminate.
+  Qed.
+
+  Lemma ch_empty_prop_2 : Fun_prop2 ch_empty.
+  Proof.
+    unfold Fun_prop2.
+    intros.
+    compute in H.
+    exfalso; apply H; auto.
+  Qed.
+
+  Lemma ch_empty_prop_3 : Fun_prop3 ch_empty.
+  Proof.
+    unfold Fun_prop3.
+    intros.
+    compute in H.
+    exfalso; apply H; auto.
+  Qed.
+
+  Theorem ch_empty_prop : Fun_prop ch_empty.
+  Proof.
+    unfold Fun_prop.
+    split.
+    apply ch_empty_prop_1.
+    split.
+    apply ch_empty_prop_2.
+    apply ch_empty_prop_3.
+  Qed.
+
+  Lemma ch_singleton_prop_1 : forall n, Fun_prop1 (ch_singleton n).
+  Proof.
+    unfold Fun_prop1.
+    intros.
+    unfold ch_singleton.
+    destruct (beq_name n x); intro; discriminate.
+  Qed.
+
+  Lemma ch_singleton_prop_2 : forall n, Fun_prop2 (ch_singleton n).
+  Proof.
+    unfold Fun_prop2.
+    unfold domain.
+    unfold ch_singleton.
+    intros.
+    destruct (beq_name n x) eqn:?.
+      apply beq_name_true_iff in Heqb.
+      destruct (beq_name n y) eqn:?.
+        apply beq_name_true_iff in Heqb0.
+        rewrite <- Heqb.
+        rewrite Heqb0.
+        auto.
+
+        discriminate.
+      exfalso.
+      apply H.
+      auto.
+  Qed.
+
+  Lemma ch_singleton_prop_3 : forall n, Fun_prop3 (ch_singleton n).
+  Proof.
+    unfold Fun_prop3.
+    unfold domain.
+    unfold ch_singleton.
+    unfold fun_join.
+    intros.
+    destruct (beq_name n x) eqn:?.
+      apply beq_name_true_iff in Heqb.
+      rewrite Heqb.
+      compute.
+      auto.
+
+      exfalso.
+      apply H.
+      auto.
+  Qed.
+
+  Theorem ch_singleton_prop : forall n, Fun_prop (ch_singleton n).
+  Proof.
+    unfold Fun_prop.
+    split.
+    apply ch_singleton_prop_1.
+    split.
+    apply ch_singleton_prop_2.
+    apply ch_singleton_prop_3.
+  Qed.
+
+  Lemma ch_two_prop_1 : forall n m, n <> m -> Fun_prop1 (ch_two n m).
+  Proof.
+    unfold Fun_prop1.
+    unfold ch_two.
+    intros.
+    destruct (beq_name n x) eqn:?.
+      apply beq_name_true_iff in Heqb.
+      rewrite <- Heqb.
+      intro.
+      inversion H0.
+      auto.
+
+      destruct (beq_name m x) eqn:?.
+        intro.
+        discriminate.
+        intro.
+        discriminate.
+  Qed.
+
+  Lemma ch_two_prop_2 : forall n m, Fun_prop2 (ch_two n m).
+  Proof.
+    unfold Fun_prop2.
+    unfold domain.
+    unfold ch_two.
+    intros.
+    destruct (beq_name n x) eqn:?.
+      apply beq_name_true_iff in Heqb.
+      destruct (beq_name n y) eqn:?.
+        apply beq_name_true_iff in Heqb0.
+        rewrite <- Heqb.
+        rewrite Heqb0.
+        auto.
+
+        destruct (beq_name m y) eqn:?.
+          discriminate.
+          discriminate.
+      destruct (beq_name m x) eqn:?.
+        apply beq_name_true_iff in Heqb0.
+        destruct (beq_name n y) eqn:?.
+          discriminate.
+          destruct (beq_name m y) eqn:?.
+            apply beq_name_true_iff in Heqb2.
+            rewrite <- Heqb0.
+            apply Heqb2.
+
+            discriminate.
+        exfalso; apply H0; auto.
+  Qed.
+
+  Lemma ch_two_prop_3 : forall n m, n <> m -> Fun_prop3(ch_two n m).
+  Proof.
+    unfold Fun_prop3.
+    unfold domain.
+    unfold ch_two.
+    unfold fun_join.
+    unfold to_star_function.
+    intros.
+    destruct (beq_name n x) eqn:?.
+      apply beq_name_true_iff in Heqb.
+      rewrite Heqb.
+      rewrite beq_name_refl.
+      destruct (beq_name x m) eqn:?.
+        apply beq_name_true_iff in Heqb0.
+        rewrite Heqb0 in Heqb.
+        contradiction.
+
+        auto.
+      destruct (beq_name m x) eqn:?.
+        auto.
+        exfalso; apply H0; auto.
+  Qed.
+
+  Theorem ch_two_prop : forall n m, n <> m -> Fun_prop (ch_two n m).
+  Proof.
+    split.
+    apply ch_two_prop_1; auto.
+    split.
+    apply ch_two_prop_2.
+    apply ch_two_prop_3; auto.
+  Qed.
 End Fun.

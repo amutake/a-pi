@@ -150,3 +150,55 @@ Proof.
     compute in H2.
     discriminate.
 Qed.
+
+Lemma inter_head : forall ns1 ns2 x, NameSets.Equal (NameSets.inter (NameSets.add x ns1) (NameSets.add x ns2)) (NameSets.add x (NameSets.inter ns1 ns2)).
+Proof.
+  intros.
+  destruct (NameSets.P.In_dec x ns2).
+  rewrite (NameSets.P.add_equal i).
+  apply NameSets.P.inter_add_1.
+  auto.
+  setoid_rewrite NameSets.P.inter_sym.
+  destruct (NameSets.P.In_dec x ns1).
+  rewrite (NameSets.P.add_equal i).
+  apply NameSets.P.inter_add_1.
+  auto.
+  setoid_rewrite NameSets.P.inter_sym.
+  elim ns1 using NameSets.P.set_induction.
+    intros.
+    apply NameSets.P.empty_is_empty_1 in H.
+    setoid_rewrite H.
+    elim ns2 using NameSets.P.set_induction.
+      intros.
+      apply NameSets.P.empty_is_empty_1 in H0.
+      setoid_rewrite H0.
+      (* setoid_rewrite NameSets.EP. *)
+
+
+
+
+
+Admitted.
+
+Lemma add_not_empty : forall x ns, ~ NameSets.Empty (NameSets.add x ns).
+Proof.
+  intros.
+  intro.
+  elim ns using NameSets.P.set_induction.
+  intros.
+Admitted.
+
+
+Lemma inter_head_not_empty :
+  forall ns1 ns2 x, ~ NameSets.Empty (NameSets.inter (NameSets.add x ns1) (NameSets.add x ns2)).
+Proof.
+  intros.
+  intro.
+  setoid_rewrite inter_head in H.
+
+
+  assert (forall ns, NameSets.Equal (NameSets.inter ns ns) ns).
+    intro.
+    apply NameSets.P.inter_subset_equal.
+    apply NameSets.P.subset_refl.
+Admitted.
