@@ -255,3 +255,20 @@ Proof.
   apply NameSets.F.remove_3 in H.
   auto.
 Qed.
+
+Lemma inter_empty : forall s1 s2,
+                      NameSets.Empty (NameSets.inter s1 s2) ->
+                      forall x,
+                        (NameSets.In x s1 -> ~ NameSets.In x s2) /\
+                        (NameSets.In x s2 -> ~ NameSets.In x s1).
+Proof.
+  intros.
+  unfold NameSets.Empty in H.
+  specialize (H x).
+  split; intro; intro.
+    apply H.
+    eapply NameSets.F.inter_3; auto.
+
+    apply H.
+    eapply NameSets.F.inter_3; auto.
+Qed.

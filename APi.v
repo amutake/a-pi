@@ -526,143 +526,122 @@ Qed.
 Definition FunctionProperty {ns : NameSets.t} {f : Fun.temp_name_mapping} {p : config} (ty : ns ; f |- p) : Prop :=
   Fun.Fun_prop f.
 
-Lemma function_property1 : forall (ns : NameSets.t) (f : Fun.temp_name_mapping) (p : config) (ty : ns ; f |- p), Fun.Fun_prop1 f.
+Lemma function_property_1 : forall (ns : NameSets.t) (f : Fun.temp_name_mapping) (p : config) (ty : ns ; f |- p), Fun.Fun_prop_1 f.
 Proof.
-  unfold Fun.Fun_prop1.
-  unfold not.
   intros.
   induction ty.
-    compute in H; discriminate.
-    compute in H; discriminate.
-    eapply Fun.ch_singleton_not_name.
-    apply H.
-    eapply Fun.ch_singleton_not_name.
-    apply H.
+    apply Fun.ch_empty_prop_1.
 
-    apply Fun.ch_two_prop_1 in H0.
-    unfold Fun.Fun_prop1 in H0.
-    eapply H0.
-    apply H.
+    apply Fun.ch_empty_prop_1.
 
-    apply Fun.ch_two_prop_1 in H0.
-    unfold Fun.Fun_prop1 in H0.
-    eapply H0.
-    apply H.
+    apply Fun.ch_singleton_prop_1.
 
-    destruct (NameSets.mem x ns1) eqn:?.
-      destruct (NameSets.mem x ns2) eqn:?.
+    apply Fun.ch_singleton_prop_1.
 
+    apply Fun.ch_two_prop_1; auto.
 
+    apply Fun.ch_two_prop_1; auto.
 
+    apply Fun.fun_plus_prop_1; auto.
 
-Admitted.
+    apply Fun.fun_remove_prop_1; auto.
+Qed.
 
-Lemma function_property2 : forall (ns : NameSets.t) (f : Fun.temp_name_mapping) (p : config) (ty : ns ; f |- p), Fun.Fun_prop2 f.
+Lemma fun_exclusive : forall ns1 ns2 f1 f2 p1 p2
+                             (ty1 : ns1 ; f1 |- p1) (ty2 : ns2 ; f2 |- p2),
+                        NameSets.Empty (NameSets.inter ns1 ns2) ->
+                        (forall x,
+                           (Fun.domain f1 x -> ~ Fun.domain f2 x) /\
+                           (Fun.domain f2 x -> ~ Fun.domain f1 x)).
 Proof.
-  unfold Fun.Fun_prop2.
-  intros ns f p ty.
+  intros.
+  eapply inter_empty in H.
+  inversion_clear H.
+  split; intros; intro.
+    apply typing_domain_1 with (x := x) in ty1.
+      apply NameSets.F.mem_iff in ty1.
+      apply typing_domain_1 with (x := x) in ty2.
+        apply NameSets.F.mem_iff in ty2.
+        apply H0 in ty1.
+        apply ty1; auto.
+
+        auto.
+      auto.
+    apply typing_domain_1 with (x := x) in ty1.
+      apply NameSets.F.mem_iff in ty1.
+      apply typing_domain_1 with (x := x) in ty2.
+        apply NameSets.F.mem_iff in ty2.
+        apply H0 in ty1.
+        apply ty1; auto.
+
+        auto.
+      auto.
+Qed.
+
+Lemma function_property_2 : forall (ns : NameSets.t) (f : Fun.temp_name_mapping) (p : config) (ty : ns ; f |- p), Fun.Fun_prop_2 f.
+Proof.
+  intros.
   induction ty.
-    intros; exfalso; apply H; auto.
-    intros; exfalso; apply H; auto.
+    apply Fun.ch_empty_prop_2.
 
+    apply Fun.ch_empty_prop_2.
+
+    apply Fun.ch_singleton_prop_2.
+
+    apply Fun.ch_singleton_prop_2.
+
+    apply Fun.ch_two_prop_2.
+
+    apply Fun.ch_two_prop_2.
+
+    apply Fun.fun_plus_prop_2; auto.
     intros.
-    apply Fun.ch_singleton_domain in H.
-    apply Fun.ch_singleton_domain in H0.
-    rewrite <- H0; auto.
+    eapply fun_exclusive with
+    (ns1 := ns1) (ns2 := ns2) (f1 := f1) (f2 := f2) (p1 := p1) (p2 := p2) (x := x)
+      in H; auto.
 
-    intros.
-    apply Fun.ch_singleton_domain in H0.
-    apply Fun.ch_singleton_domain in H1.
-    rewrite <- H1; auto.
+    apply Fun.fun_remove_prop_2; auto.
+Qed.
 
-    intros.
-    apply Fun.ch_two_domain in H1.
-    apply Fun.ch_two_domain in H2.
-    assert (Fun.ch_two x z x = Some (star_name z)).
-      unfold Fun.ch_two.
-      rewrite beq_name_refl.
-      auto.
-    assert (Fun.ch_two x z z = Some star_bottom).
-      unfold Fun.ch_two.
-      destruct (beq_name x z) eqn:?.
-      apply beq_name_true_iff in Heqb.
-      rewrite Heqb in H; exfalso; apply H; auto.
-      rewrite beq_name_refl.
-      auto.
+Lemma function_property_3 : forall ns f p (ty : ns ; f |- p), Fun.Fun_prop_3 f.
+Proof.
+  intros.
+  induction ty.
+    apply Fun.ch_empty_prop_3.
 
-    inversion_clear H1.
-      inversion_clear H2.
-        rewrite <- H10; rewrite <- H1; auto.
+    apply Fun.ch_empty_prop_3.
 
-        rewrite <- H10 in H3.
-        rewrite <- H1 in H3.
-        rewrite H8 in H3.
-        rewrite H9 in H3.
-        discriminate.
-      inversion_clear H2.
-        rewrite <- H10 in H3.
-        rewrite <- H1 in H3.
-        rewrite H8 in H3.
-        rewrite H9 in H3.
-        discriminate.
+    apply Fun.ch_singleton_prop_3.
 
-        rewrite <- H10; rewrite <- H1; auto.
+    apply Fun.ch_singleton_prop_3.
 
-    intros.
-    apply Fun.ch_two_domain in H2.
-    apply Fun.ch_two_domain in H3.
-    assert (Fun.ch_two x z x = Some (star_name z)).
-      unfold Fun.ch_two.
-      rewrite beq_name_refl.
-      auto.
-    assert (Fun.ch_two x z z = Some star_bottom).
-      unfold Fun.ch_two.
-      destruct (beq_name x z) eqn:?.
-      apply beq_name_true_iff in Heqb.
-      rewrite Heqb in H; exfalso; apply H; auto.
-      rewrite beq_name_refl.
-      auto.
+    apply Fun.ch_two_prop_3; auto.
 
-    inversion_clear H2.
-      inversion_clear H3.
-        rewrite <- H11; rewrite <- H2; auto.
+    apply Fun.ch_two_prop_3; auto.
 
-        rewrite <- H11 in H4.
-        rewrite <- H2 in H4.
-        rewrite H9 in H4.
-        rewrite H10 in H4.
-        discriminate.
-      inversion_clear H3.
-        rewrite <- H11 in H4.
-        rewrite <- H2 in H4.
-        rewrite H9 in H4.
-        rewrite H10 in H4.
-        discriminate.
+    apply Fun.fun_plus_prop_3; auto.
+      intros.
+      eapply fun_exclusive with (x := x) in H.
+        apply H.
+        apply ty1.
+        apply ty2.
 
-        rewrite <- H11; rewrite <- H2; auto.
-
-    intros; subst.
-    apply Fun.fun_plus_domain in H0.
-    apply Fun.fun_plus_domain in H1.
-    inversion_clear H0.
-      inversion_clear H1.
-        apply IHty1.
-          auto.
-          auto.
-
-          eapply typing_domain_1 in ty1.
-
-(* NameSets.Empty (NameSets.inter ns1 ns2) -> ns1 ; f1 |- _ -> ns2 ; f2 |- _ -> NameSets.In x ns1 -> Fun.fun_plus f1 f2 x = f1 x *)
-Admitted.
+    apply Fun.fun_remove_prop_3; auto.
+Qed.
 
 Lemma function_property : forall (ns : NameSets.t) (f : Fun.temp_name_mapping) (p : config) (ty : ns ; f |- p), FunctionProperty ty.
 Proof.
   unfold FunctionProperty.
   unfold Fun.Fun_prop.
   intros.
-
-Admitted.
-
+  split; try split.
+  eapply function_property_1.
+  apply ty.
+  eapply function_property_2.
+  apply ty.
+  eapply function_property_3.
+  apply ty.
+Qed.
 
 Definition Uniqueness {ns} {f} {p} (ty : ns ; f |- p) : Prop :=
   forall (ns' : NameSets.t) (f' : Fun.temp_name_mapping),
@@ -840,7 +819,7 @@ Proof.
       auto.
 Qed.
 
-Theorem Soundness : forall (ns : NameSets.t) (f : function ns) (p : config) (ty : ns ; f |- p),
+Theorem Soundness : forall ns f p (ty : ns ; f |- p),
                       ConfigSubset ty /\ FunctionProperty ty /\ Uniqueness ty.
 Proof.
   intros.
