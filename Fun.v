@@ -292,28 +292,25 @@ Module Fun.
       end.
 
   Definition Fun_comm (f1 : temp_name_mapping) (f2 : temp_name_mapping) :=
-    forall (x : name), fun_plus f1 f2 x = fun_plus f2 f1 x.
+    fun_plus f1 f2 = fun_plus f2 f1.
 
   (* f(x) /= x *)
-  Definition Fun_prop1 (f : temp_name_mapping) :=
+  Definition Fun_prop_1 (f : temp_name_mapping) :=
     forall x : name, f x <> Some (star_name x).
 
   (* f(x) = f(y) and is not member of {_|_, *} -> x = y *)
-  Definition Fun_prop2 (f : temp_name_mapping) :=
-    forall (x y : name), domain f x -> domain f y ->
+  Definition Fun_prop_2 (f : temp_name_mapping) :=
+    forall (x y : name), (exists n, f x = Some (star_name n)) ->
+                         (exists n, f y = Some (star_name n)) ->
                          f x = f y ->
-                         f x <> Some star_bottom ->
-                         f x <> Some star_star ->
-                         f y <> Some star_bottom ->
-                         f y <> Some star_star ->
                          x = y.
 
   (* f*(f(x)) = _|_ *)
-  Definition Fun_prop3 (f : temp_name_mapping) :=
+  Definition Fun_prop_3 (f : temp_name_mapping) :=
     forall x, domain f x -> fun_join f x = Some star_bottom.
 
   Definition Fun_prop (f : temp_name_mapping) :=
-    Fun_prop1 f /\ Fun_prop2 f /\ Fun_prop3 f.
+    Fun_prop_1 f /\ Fun_prop_2 f /\ Fun_prop_3 f.
 
   Record Compatible (f1 : temp_name_mapping) (f2 : temp_name_mapping) := Build_compatible {
     Compatible_comm : Fun_comm f1 f2;
@@ -324,26 +321,27 @@ Module Fun.
 
   Definition ch_empty := empty.
 
-  Lemma ch_empty_prop_1 : Fun_prop1 ch_empty.
+  Lemma ch_empty_prop_1 : Fun_prop_1 ch_empty.
   Proof.
-    unfold Fun_prop1.
+    unfold Fun_prop_1.
     intro.
     intro.
     compute in H.
     discriminate.
   Qed.
 
-  Lemma ch_empty_prop_2 : Fun_prop2 ch_empty.
+  Lemma ch_empty_prop_2 : Fun_prop_2 ch_empty.
   Proof.
-    unfold Fun_prop2.
+    unfold Fun_prop_2.
     intros.
     compute in H.
-    exfalso; apply H; auto.
+    inversion H.
+    discriminate.
   Qed.
 
-  Lemma ch_empty_prop_3 : Fun_prop3 ch_empty.
+  Lemma ch_empty_prop_3 : Fun_prop_3 ch_empty.
   Proof.
-    unfold Fun_prop3.
+    unfold Fun_prop_3.
     intros.
     compute in H.
     exfalso; apply H; auto.
@@ -450,18 +448,17 @@ Module Fun.
       discriminate.
   Qed.
 
-  Lemma ch_singleton_prop_1 : forall n, Fun_prop1 (ch_singleton n).
+  Lemma ch_singleton_prop_1 : forall n, Fun_prop_1 (ch_singleton n).
   Proof.
-    unfold Fun_prop1.
+    unfold Fun_prop_1.
     intros.
     unfold ch_singleton.
     destruct (beq_name n x); intro; discriminate.
   Qed.
 
-  Lemma ch_singleton_prop_2 : forall n, Fun_prop2 (ch_singleton n).
+  Lemma ch_singleton_prop_2 : forall n, Fun_prop_2 (ch_singleton n).
   Proof.
-    unfold Fun_prop2.
-    unfold domain.
+    unfold Fun_prop_2.
     unfold ch_singleton.
     intros.
     destruct (beq_name n x) eqn:?.
@@ -473,14 +470,13 @@ Module Fun.
         auto.
 
         discriminate.
-      exfalso.
-      apply H.
-      auto.
+      inversion H.
+      discriminate.
   Qed.
 
-  Lemma ch_singleton_prop_3 : forall n, Fun_prop3 (ch_singleton n).
+  Lemma ch_singleton_prop_3 : forall n, Fun_prop_3 (ch_singleton n).
   Proof.
-    unfold Fun_prop3.
+    unfold Fun_prop_3.
     unfold domain.
     unfold ch_singleton.
     unfold fun_join.
@@ -603,9 +599,9 @@ Module Fun.
         apply H2; auto.
   Qed.
 
-  Lemma ch_two_prop_1 : forall n m, n <> m -> Fun_prop1 (ch_two n m).
+  Lemma ch_two_prop_1 : forall n m, n <> m -> Fun_prop_1 (ch_two n m).
   Proof.
-    unfold Fun_prop1.
+    unfold Fun_prop_1.
     unfold ch_two.
     intros.
     destruct (beq_name n x) eqn:?.
@@ -622,9 +618,9 @@ Module Fun.
         discriminate.
   Qed.
 
-  Lemma ch_two_prop_2 : forall n m, Fun_prop2 (ch_two n m).
+  Lemma ch_two_prop_2 : forall n m, Fun_prop_2 (ch_two n m).
   Proof.
-    unfold Fun_prop2.
+    unfold Fun_prop_2.
     unfold domain.
     unfold ch_two.
     intros.
@@ -649,12 +645,12 @@ Module Fun.
             apply Heqb2.
 
             discriminate.
-        exfalso; apply H0; auto.
+        inversion H; discriminate.
   Qed.
 
-  Lemma ch_two_prop_3 : forall n m, n <> m -> Fun_prop3(ch_two n m).
+  Lemma ch_two_prop_3 : forall n m, n <> m -> Fun_prop_3(ch_two n m).
   Proof.
-    unfold Fun_prop3.
+    unfold Fun_prop_3.
     unfold domain.
     unfold ch_two.
     unfold fun_join.
@@ -682,5 +678,239 @@ Module Fun.
     split.
     apply ch_two_prop_2.
     apply ch_two_prop_3; auto.
+  Qed.
+
+  Lemma fun_plus_prop_1 : forall f1 f2,
+                            Fun_prop_1 f1 ->
+                            Fun_prop_1 f2 ->
+                            Fun_prop_1 (fun_plus f1 f2).
+  Proof.
+    unfold Fun_prop_1.
+    unfold fun_plus.
+    intros.
+    destruct (f1 x) eqn:?.
+      destruct s.
+        rewrite <- Heqo.
+        apply H.
+
+        destruct (f2 x) eqn:?.
+          rewrite <- Heqo0.
+          apply H0.
+
+          intro; discriminate.
+
+        intro; discriminate.
+      apply H0.
+  Qed.
+
+  Lemma fun_plus_prop_2 : forall f1 f2,
+                            (forall x,
+                               (domain f1 x -> ~ domain f2 x) /\
+                               (domain f2 x -> ~ domain f1 x)) ->
+                            Fun_prop_2 f1 ->
+                            Fun_prop_2 f2 ->
+                            Fun_prop_2 (fun_plus f1 f2).
+  Proof.
+    unfold Fun_prop_2.
+    unfold domain.
+    unfold fun_plus.
+    intros.
+    destruct (f1 x) eqn:?.
+      destruct s.
+        destruct (f1 y) eqn:?.
+          destruct s.
+            apply H0.
+              exists n; auto.
+              exists n0; auto.
+              rewrite Heqo; rewrite Heqo0; auto.
+            destruct (f2 y) eqn:?.
+              inversion H4; subst.
+              specialize (H y).
+              inversion H.
+              rewrite Heqo0 in H5.
+              rewrite Heqo1 in H5.
+              assert (Some star_bottom <> None).
+                intro; discriminate.
+              apply H5 in H7.
+              exfalso; apply H7; intro; discriminate.
+
+              discriminate.
+            discriminate.
+  Admitted.
+
+  Lemma fun_plus_prop_3 : forall f1 f2,
+                            (forall x,
+                               (domain f1 x -> ~ domain f2 x) /\
+                               (domain f2 x -> ~ domain f1 x)) ->
+                            Fun_prop_3 f1 ->
+                            Fun_prop_3 f2 ->
+                            Fun_prop_3 (fun_plus f1 f2).
+  Proof.
+    unfold Fun_prop_3.
+    unfold fun_join.
+    unfold to_star_function.
+    unfold fun_plus.
+    unfold domain.
+    intros.
+    destruct (f1 x) eqn:?.
+      destruct s.
+        destruct (f1 n) eqn:?.
+          specialize (H0 x).
+          assert (f1 x <> None).
+            rewrite Heqo.
+            intro; discriminate.
+          apply H0 in H3.
+          rewrite Heqo in H3.
+          rewrite Heqo0 in H3.
+          inversion H3.
+          destruct (f2 n) eqn:?.
+            specialize (H n).
+            inversion H.
+            assert (f1 n <> None).
+              rewrite Heqo0; intro; discriminate.
+            apply H4 in H7.
+            exfalso; apply H7; intro.
+            rewrite Heqo1 in H8; discriminate.
+
+            auto.
+
+          specialize (H0 x).
+          assert (f1 x <> None).
+            rewrite Heqo; intro; discriminate.
+          apply H0 in H3.
+          rewrite Heqo in H3.
+          rewrite Heqo0 in H3; discriminate.
+
+        destruct (f2 x) eqn:?.
+          specialize (H x).
+          inversion H.
+          assert (f1 x <> None).
+            rewrite Heqo; intro; discriminate.
+          apply H3 in H5.
+          exfalso; apply H5; intro.
+          rewrite Heqo0 in H6; discriminate.
+
+          auto.
+        auto.
+      destruct (f2 x) eqn:?.
+        destruct s.
+          destruct (f1 n) eqn:?.
+            specialize (H1 x).
+            assert (f2 x <> None).
+              rewrite Heqo0; intro; discriminate.
+            apply H1 in H3.
+            rewrite Heqo0 in H3.
+            specialize (H n).
+            inversion H.
+            assert (f1 n <> None).
+              rewrite Heqo1; intro; discriminate.
+            apply H4 in H6.
+            exfalso; apply H6; intro.
+            rewrite H3 in H7; discriminate.
+
+            assert (f2 x <> None).
+              rewrite Heqo0; intro; discriminate.
+            apply H1 in H3.
+            rewrite Heqo0 in H3.
+            auto.
+          auto.
+          auto.
+        exfalso; apply H2; auto.
+  Qed.
+
+  Lemma fun_remove_prop_1 : forall f x,
+                              Fun_prop_1 f ->
+                              Fun_prop_1 (fun_remove f x).
+  Proof.
+    unfold Fun_prop_1.
+    unfold fun_remove.
+    intros.
+    destruct (beq_name x0 x) eqn:?.
+      intro; discriminate.
+
+      apply beq_name_false_iff in Heqb.
+      destruct (f x0) eqn:?.
+        destruct s.
+          destruct (beq_name n x) eqn:?.
+            intro; discriminate.
+
+            specialize (H x0).
+            rewrite Heqo in H.
+            auto.
+          intro; discriminate.
+          intro; discriminate.
+        intro; discriminate.
+  Qed.
+
+  Lemma fun_remove_prop_2 : forall f n,
+                              Fun_prop_2 f ->
+                              Fun_prop_2 (fun_remove f n).
+  Proof.
+    unfold Fun_prop_2.
+    unfold fun_remove.
+    intros.
+    destruct (beq_name x n) eqn:?.
+      inversion H0; discriminate.
+
+      destruct (beq_name y n) eqn:?.
+        inversion H1; discriminate.
+
+        destruct (f x) eqn:?.
+          destruct s.
+            destruct (beq_name n0 n) eqn:?.
+              inversion H0; discriminate.
+
+              destruct (f y) eqn:?.
+                destruct s.
+                  destruct (beq_name n1 n) eqn:?.
+                    inversion H1; discriminate.
+
+                    inversion H2.
+                    apply H.
+                      exists n0; auto.
+
+                      exists n1; auto.
+
+                      rewrite Heqo.
+                      rewrite Heqo0.
+                      rewrite H4; auto.
+                  discriminate.
+
+                  discriminate.
+                discriminate.
+            inversion H0; discriminate.
+
+            inversion H0; discriminate.
+          inversion H0; discriminate.
+  Qed.
+
+  Lemma fun_remove_prop_3 : forall f n,
+                              Fun_prop_3 f ->
+                              Fun_prop_3 (fun_remove f n).
+  Proof.
+    unfold Fun_prop_3.
+    unfold fun_remove, fun_join, domain, to_star_function.
+    intros.
+    assert (forall o, (exists (x : Type), o = Some x) -> o <> None).
+      intros.
+      inversion H1.
+      rewrite H2; intro; discriminate.
+    destruct (beq_name x n) eqn:?.
+      contradict H0; auto.
+
+      destruct (f x) eqn:?.
+        destruct s.
+          destruct (beq_name n0 n) eqn:?.
+            auto.
+
+            rewrite Heqb0.
+            rewrite <- Heqo in H0.
+            apply H in H0.
+            rewrite Heqo in H0.
+            rewrite H0.
+            auto.
+          auto.
+          auto.
+        contradiction H0; auto.
   Qed.
 End Fun.
