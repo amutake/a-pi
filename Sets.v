@@ -15,6 +15,8 @@ Module NameSets.
   Include M.
 End NameSets.
 
+Hint Resolve NameSets.P.equal_refl.
+
 Lemma mem_head : forall x s, NameSets.In x (NameSets.add x s).
 Proof.
   intros.
@@ -202,3 +204,54 @@ Proof.
     apply NameSets.P.inter_subset_equal.
     apply NameSets.P.subset_refl.
 Admitted.
+
+Lemma union_add_singleton :
+  forall x y, NameSets.Equal (NameSets.union (NameSets.singleton x) (NameSets.singleton y))
+                    (NameSets.add x (NameSets.singleton y)).
+Admitted.
+
+Lemma add_join : forall x s, NameSets.Equal
+                               (NameSets.add x (NameSets.add x s))
+                               (NameSets.add x s).
+Proof.
+  intros.
+  assert (NameSets.In x (NameSets.add x s)).
+    apply NameSets.F.add_1.
+    destruct x; auto.
+  setoid_rewrite (NameSets.P.add_equal H).
+  apply NameSets.P.equal_refl.
+Qed.
+
+Lemma add_in : forall x y s, NameSets.In x (NameSets.add y s) ->
+                             x = y \/
+                             NameSets.In x s.
+Proof.
+  intros.
+  destruct (NameDecidableType.eq_dec y x).
+    apply NameDecidableType.name_sym in e.
+    unfold NameDecidableType.eq in e.
+    destruct x, y.
+    left; rewrite e; auto.
+
+    right.
+    apply NameSets.F.add_3 with (s := s) in n.
+      auto.
+      auto.
+Qed.
+
+Lemma remove_in : forall x y s, NameSets.In x (NameSets.remove y s) ->
+                                x <> y /\
+                                NameSets.In x s.
+Proof.
+  intros.
+  split.
+  intro.
+  assert (NameDecidableType.eq y x).
+    rewrite H0.
+    apply NameDecidableType.name_refl.
+  eapply NameSets.F.remove_1 in H1.
+  apply H1.
+  apply H.
+  apply NameSets.F.remove_3 in H.
+  auto.
+Qed.

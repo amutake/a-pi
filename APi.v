@@ -367,21 +367,6 @@ Proof.
         auto.
 Qed.
 
-Definition replace (x y z : name) : name :=
-  match NameOrderedType.compare x z with
-    | Eq => y
-    | _ => z
-  end.
-
-Fixpoint replace_names (x y : name) (c : config) : config :=
-  match c with
-    | nil => nil
-    | create n1 n2 c' => create (replace x y n1) (replace x y n2) (replace_names x y c')
-    | send n1 n2 => send (replace x y n1) (replace x y n2)
-    | restrict n c' => restrict (replace x y n) (replace_names x y c')
-    | compose c1 c2 => compose (replace_names x y c1) (replace_names x y c2)
-  end.
-
 Fixpoint config_names (c : config) : NameSets.t :=
   match c with
     | nil => NameSets.empty
@@ -391,78 +376,152 @@ Fixpoint config_names (c : config) : NameSets.t :=
     | compose c1 c2 => NameSets.union (config_names c1) (config_names c2)
   end.
 
-Fixpoint config_free_names' (bounded : NameSets.t) (c : config) : NameSets.t :=
+Fixpoint config_bounded_names (c : config) : NameSets.t :=
   match c with
     | nil => NameSets.empty
-    | create n1 n2 c' => if NameSets.mem n1 bounded
-                         then (config_free_names' (NameSets.add n2 bounded) c')
-                         else NameSets.add n1 (config_free_names' (NameSets.add n2 bounded) c')
-    | send n1 n2 => if NameSets.mem n1 bounded
-                    then NameSets.empty
-                    else NameSets.singleton n1
-    | restrict n c' => config_free_names' (NameSets.add n bounded) c'
-    | compose c1 c2 => NameSets.union (config_free_names' bounded c1) (config_free_names' bounded c2)
+    | create _ n c' => NameSets.add n (config_bounded_names c')
+    | send _ _ => NameSets.empty
+    | restrict n c' => NameSets.add n (config_bounded_names c')
+    | compose c1 c2 => NameSets.union (config_bounded_names c1) (config_bounded_names c2)
   end.
 
-Definition config_free_names (c : config) : NameSets.t := config_free_names' NameSets.empty c.
+Definition config_free_names (c : config) : NameSets.t :=
+  NameSets.diff (config_names c) (config_bounded_names c).
 
-Goal forall x y : name, config_free_names (send x y) = NameSets.singleton x.
+Goal forall x y : name, NameSets.Equal (config_free_names (send x y)) (NameSets.add x (NameSets.singleton y)).
 Proof.
   intros.
   unfold config_free_names.
-  auto.
+  simpl.
+  setoid_rewrite NameSets.P.empty_diff_2.
+  apply NameSets.P.equal_refl.
+  apply NameSets.P.empty_is_empty_2.
+  apply NameSets.P.equal_refl.
 Qed.
 
-Lemma config_free_names_create : forall (p : config) (x y : name),
-                                   config_free_names (create x y p) = NameSets.add x (config_free_names p).
+Goal forall (p : config) (x y : name), ~ NameDecidableType.eq x y ->
+       NameSets.Equal (config_free_names (create x y p))
+                      (NameSets.add x (config_free_names p)).
 Proof.
   intros.
+  unfold config_free_names.
   induction p.
-    compute.
-    auto.
-
-    unfold config_free_names.
     simpl.
-    destruct (NameSets.mem n (NameSets.add y NameSets.empty)) eqn:?.
+    setoid_replace (NameSets.diff NameSets.empty NameSets.empty)
+    with (NameSets.empty).
+    setoid_rewrite <- NameSets.P.singleton_equal_add.
+    setoid_rewrite <- NameSets.P.remove_diff_singleton.
 
-    unfold config_free_names in IHp.
-    setoid_rewrite <- NameSets.P.singleton_equal_add in Heqb.
-    apply NameSets.EP.singleton_mem_3 in Heqb.
-    destruct y, n.
-    rewrite <- Heqb.
-    simpl in IHp.
+
+    (* compute. *)
+    (* auto. *)
+
+    (* unfold config_free_names. *)
+    (* simpl. *)
+    (* destruct (NameSets.mem n (NameSets.add y NameSets.empty)) eqn:?. *)
+
+    (* unfold config_free_names in IHp. *)
+    (* setoid_rewrite <- NameSets.P.singleton_equal_add in Heqb. *)
+    (* apply NameSets.EP.singleton_mem_3 in Heqb. *)
+    (* destruct y, n. *)
+    (* rewrite <- Heqb. *)
+    (* simpl in IHp. *)
 Admitted.
 
-Fixpoint config_bound_names (c : config) : NameSets.t :=
-  match c with
-    | nil => NameSets.empty
-    | create _ n c' => NameSets.add n (config_bound_names c')
-    | send _ _ => NameSets.empty
-    | restrict n c' => NameSets.add n (config_bound_names c')
-    | compose c1 c2 => NameSets.union (config_bound_names c1) (config_bound_names c2)
-  end.
+Inductive FreeName (x : name) : config -> Prop :=
+  | send_free_1 : forall y, FreeName x (send x y)
+  | send_free_2 : forall y, FreeName x (send y x)
+  | create_free : forall y p, FreeName x (create x y p)
+  | create_free_p : forall y z p, FreeName x p -> x <> z -> FreeName x (create y z p)
+  | compose_free_l : forall pl pr, FreeName x pl -> FreeName x (compose pl pr)
+  | compose_free_r : forall pl pr, FreeName x pr -> FreeName x (compose pl pr)
+  | restrict_free : forall r p, FreeName x p -> x <> r -> FreeName x (restrict r p).
 
-Definition ConfigSubset {ns : NameSets.t} {f : Fun.temp_name_mapping} {p : config} (ty : ns ; f |- p) : Prop :=
-  NameSets.subset ns (config_free_names p) = true.
+(* 広い可能性がある これが free name の述語になっていることを証明しないといけない どうやって? *)
+
+Hint Constructors FreeName.
+
+Definition ConfigSubset {ns} {f} {p} (ty : ns ; f |- p) : Prop :=
+  NameSets.For_all (fun x => FreeName x p) ns.
 
 Lemma config_subset : forall (ns : NameSets.t) (f : Fun.temp_name_mapping) (p : config) (ty : ns ; f |- p), ConfigSubset ty.
 Proof.
   intros.
   unfold ConfigSubset.
-  induction ty.
-    auto.
+  unfold NameSets.For_all.
+  induction ty; intros.
+    apply NameSets.F.empty_iff in H; easy.
 
-    auto.
+    apply NameSets.F.empty_iff in H; easy.
 
-    inversion ty.
-      assert (config_free_names (create x y nil) = NameSets.singleton x).
-        compute.
+    apply NameSets.P.singleton_equal_add in H.
+    apply add_in in H.
+    inversion H.
+      rewrite H0; auto.
+
+      apply NameSets.F.empty_iff in H0; easy.
+
+    apply NameSets.P.singleton_equal_add in H0.
+    apply add_in in H0.
+    inversion H0.
+      rewrite H1; auto.
+
+      apply NameSets.F.empty_iff in H1; easy.
+
+    apply add_in in H1.
+    inversion H1.
+      rewrite H2; auto.
+
+      assert (x0 = z).
+        apply NameSets.P.singleton_equal_add in H2.
+        apply add_in in H2.
+        inversion H2.
+          auto.
+          apply NameSets.F.empty_iff in H3; easy.
+      apply IHty in H2.
+      apply create_free_p.
         auto.
-      rewrite H.
 
+        rewrite H3.
+        intro.
+        rewrite H4 in H0; auto.
 
+    assert (FreeName x0 p).
+      apply (IHty x0 H2).
+    apply add_in in H2.
+    inversion_clear H2.
+      rewrite H4; auto.
 
-Admitted.
+      assert (x0 = z).
+        apply NameSets.P.singleton_equal_add in H4.
+        apply add_in in H4.
+        inversion H4.
+          auto.
+          apply NameSets.F.empty_iff in H2; easy.
+      apply create_free_p.
+      auto.
+      intro.
+      rewrite <- H2 in H1.
+      rewrite <- H5 in H1.
+      apply H1; auto.
+
+    apply NameSets.F.union_1 in H0.
+    inversion_clear H0.
+      apply compose_free_l.
+      apply IHty1.
+      auto.
+
+      apply compose_free_r.
+      apply IHty2.
+      auto.
+
+    apply remove_in in H.
+    inversion H.
+    apply restrict_free.
+      apply IHty in H1.
+      auto.
+      auto.
+Qed.
 
 Definition FunctionProperty {ns : NameSets.t} {f : Fun.temp_name_mapping} {p : config} (ty : ns ; f |- p) : Prop :=
   Fun.Fun_prop f.
@@ -475,50 +534,27 @@ Proof.
   induction ty.
     compute in H; discriminate.
     compute in H; discriminate.
-    apply Tuple.ch_singleton_not_name with x0 x x; auto.
-    apply Tuple.ch_singleton_not_name with x0 x x; auto.
-    destruct (NameDecidableType.eq_dec x x0).
-      destruct (NameDecidableType.eq_dec x z).
-        destruct x, x0, z.
-        simpl in e.
-        simpl in e0.
-        apply H0.
-        apply name_cons_prop.
-        rewrite <- e; auto.
+    eapply Fun.ch_singleton_not_name.
+    apply H.
+    eapply Fun.ch_singleton_not_name.
+    apply H.
 
-        destruct x, x0, z.
-        simpl in e, n.
-        rewrite e in H.
-        assert (Tuple.ch (Tuple.add (name_cons n1) (Tuple.singleton (name_cons n2))) (name_cons n1) = Some (star_name (name_cons n2))).
-          induction n1.
-            compute; auto.
-            compute.
-            rewrite <- beq_nat_refl; auto.
-        rewrite H in H3.
-        inversion H3.
-        rewrite H5 in e.
-        auto.
-      destruct (NameDecidableType.eq_dec x z).
-        destruct x, x0, z.
-        simpl in n, e.
-        rewrite e in H.
-        rewrite e in n.
-        assert (forall x y, x <> y -> Tuple.ch (Tuple.add x (Tuple.singleton y)) y = Some star_bottom).
-          destruct x, y0.
-          generalize dependent n4.
-          induction n3, n4.
-            intro; exfalso; auto.
-            intro.
-            compute.
-            rewrite <- beq_nat_refl.
-            auto.
-            intro.
-            compute.
-            auto.
-            intro.
-            rewrite name_cons_prop in H3.
-            compute.
-            rewrite <- beq_nat_refl.
+    apply Fun.ch_two_prop_1 in H0.
+    unfold Fun.Fun_prop1 in H0.
+    eapply H0.
+    apply H.
+
+    apply Fun.ch_two_prop_1 in H0.
+    unfold Fun.Fun_prop1 in H0.
+    eapply H0.
+    apply H.
+
+    destruct (NameSets.mem x ns1) eqn:?.
+      destruct (NameSets.mem x ns2) eqn:?.
+
+
+
+
 Admitted.
 
 Lemma function_property2 : forall (ns : NameSets.t) (f : Fun.temp_name_mapping) (p : config) (ty : ns ; f |- p), Fun.Fun_prop2 f.
@@ -530,99 +566,80 @@ Proof.
     intros; exfalso; apply H; auto.
 
     intros.
-    apply Tuple.ch_singleton_domain in H.
-    apply Tuple.ch_singleton_domain in H0.
+    apply Fun.ch_singleton_domain in H.
+    apply Fun.ch_singleton_domain in H0.
     rewrite <- H0; auto.
 
     intros.
-    apply Tuple.ch_singleton_domain in H1.
-    apply Tuple.ch_singleton_domain in H2.
+    apply Fun.ch_singleton_domain in H0.
+    apply Fun.ch_singleton_domain in H1.
     rewrite <- H1; auto.
 
     intros.
-    apply Tuple.ch_domain in H2.
-    apply Tuple.ch_domain in H3.
+    apply Fun.ch_two_domain in H1.
+    apply Fun.ch_two_domain in H2.
+    assert (Fun.ch_two x z x = Some (star_name z)).
+      unfold Fun.ch_two.
+      rewrite beq_name_refl.
+      auto.
+    assert (Fun.ch_two x z z = Some star_bottom).
+      unfold Fun.ch_two.
+      destruct (beq_name x z) eqn:?.
+      apply beq_name_true_iff in Heqb.
+      rewrite Heqb in H; exfalso; apply H; auto.
+      rewrite beq_name_refl.
+      auto.
+
+    inversion_clear H1.
+      inversion_clear H2.
+        rewrite <- H10; rewrite <- H1; auto.
+
+        rewrite <- H10 in H3.
+        rewrite <- H1 in H3.
+        rewrite H8 in H3.
+        rewrite H9 in H3.
+        discriminate.
+      inversion_clear H2.
+        rewrite <- H10 in H3.
+        rewrite <- H1 in H3.
+        rewrite H8 in H3.
+        rewrite H9 in H3.
+        discriminate.
+
+        rewrite <- H10; rewrite <- H1; auto.
+
+    intros.
+    apply Fun.ch_two_domain in H2.
+    apply Fun.ch_two_domain in H3.
+    assert (Fun.ch_two x z x = Some (star_name z)).
+      unfold Fun.ch_two.
+      rewrite beq_name_refl.
+      auto.
+    assert (Fun.ch_two x z z = Some star_bottom).
+      unfold Fun.ch_two.
+      destruct (beq_name x z) eqn:?.
+      apply beq_name_true_iff in Heqb.
+      rewrite Heqb in H; exfalso; apply H; auto.
+      rewrite beq_name_refl.
+      auto.
+
     inversion_clear H2.
       inversion_clear H3.
-        rewrite <- H9; rewrite <- H2; auto.
-        apply Tuple.ch_domain in H2.
-        inversion_clear H2.
-          rewrite <- H9 in H4.
-          rewrite <- H3 in H4.
-          simpl in H4.
-          rewrite beq_name_refl in H4.
-          apply beq_name_false_iff in H.
-          rewrite beq_name_sym in H.
-          rewrite H in H4.
-          rewrite beq_name_refl in H4.
-          discriminate.
-          apply Tuple.ch_domain_empty in H3.
-          contradiction.
+        rewrite <- H11; rewrite <- H2; auto.
+
+        rewrite <- H11 in H4.
+        rewrite <- H2 in H4.
+        rewrite H9 in H4.
+        rewrite H10 in H4.
+        discriminate.
       inversion_clear H3.
-        apply Tuple.ch_domain in H9.
-        inversion_clear H9.
-          rewrite <- H2 in H4.
-          rewrite <- H3 in H4.
-          simpl in H4.
-          apply beq_name_false_iff in H.
-          rewrite H in H4.
-          rewrite beq_name_sym in H.
-          rewrite H in H4.
-          rewrite beq_name_refl in H4.
-          symmetry in H4.
-          rewrite beq_name_refl in H4.
-          discriminate.
-
-          apply Tuple.ch_domain_empty in H3.
-          contradiction.
-        apply Tuple.ch_domain in H9.
-        apply Tuple.ch_domain in H2.
-        inversion_clear H9.
-          inversion_clear H2.
-            rewrite <- H3; rewrite <- H9; auto.
-            apply Tuple.ch_domain_empty in H9; contradiction.
-          inversion_clear H2.
-            apply Tuple.ch_domain_empty in H3; contradiction.
-            apply Tuple.ch_domain_empty in H3; contradiction.
-    intros.
-    subst.
-    apply Tuple.ch_domain in H3.
-    apply Tuple.ch_domain in H4.
-    inversion_clear H3.
-      inversion_clear H4.
-        rewrite <- H2; rewrite <- H3; auto.
-        apply Tuple.ch_singleton_domain in H3.
-        rewrite <- H2 in H5.
-        rewrite <- H3 in H5.
-        simpl in H5.
-        apply beq_name_false_iff in H.
-        rewrite H in H5.
-        rewrite beq_name_sym in H.
-        rewrite H in H5.
-        rewrite beq_name_refl in H5.
-        symmetry in H5.
-        rewrite beq_name_refl in H5.
+        rewrite <- H11 in H4.
+        rewrite <- H2 in H4.
+        rewrite H9 in H4.
+        rewrite H10 in H4.
         discriminate.
 
-      inversion_clear H4.
-        apply Tuple.ch_singleton_domain in H2.
-        rewrite <- H2 in H5.
-        rewrite <- H3 in H5.
-        simpl in H5.
-        apply beq_name_false_iff in H.
-        rewrite H in H5.
-        rewrite beq_name_sym in H.
-        rewrite H in H5.
-        rewrite beq_name_refl in H5.
-        symmetry in H5.
-        rewrite beq_name_refl in H5.
-        discriminate.
-
-        apply Tuple.ch_singleton_domain in H2.
-        apply Tuple.ch_singleton_domain in H3.
-        rewrite <- H2.
-        rewrite <- H3.
-        auto.
+        rewrite <- H11; rewrite <- H2; auto.
 
     intros; subst.
     apply Fun.fun_plus_domain in H0.
@@ -633,29 +650,10 @@ Proof.
           auto.
           auto.
 
-          unfold Fun.fun_plus in H2.
-          unfold Fun.fun_plus in H3.
-          unfold Fun.fun_plus in H4.
-          unfold Fun.fun_plus in H5.
-          unfold Fun.fun_plus in H6.
-          unfold Fun.domain in H7.
-          unfold Fun.domain in H0.
-          destruct (f1 x) eqn:?.
-            induction s.
-              destruct (f1 y) eqn:?.
-                induction s.
-                  auto.
-                  destruct (f2 y) eqn:?.
-                    induction s.
+          eapply typing_domain_1 in ty1.
 
-
-
-          apply typing_domain_1 with (ns := ns1) (p := p1) in H7.
-          apply typing_domain_1 with (ns := ns2) (p := p2) in H0.
-
-
-
-
+(* NameSets.Empty (NameSets.inter ns1 ns2) -> ns1 ; f1 |- _ -> ns2 ; f2 |- _ -> NameSets.In x ns1 -> Fun.fun_plus f1 f2 x = f1 x *)
+Admitted.
 
 Lemma function_property : forall (ns : NameSets.t) (f : Fun.temp_name_mapping) (p : config) (ty : ns ; f |- p), FunctionProperty ty.
 Proof.
@@ -666,30 +664,181 @@ Proof.
 Admitted.
 
 
-Definition Uniqueness {ns : NameSets.t} {f : function ns} {p : config} (ty : ns ; f |- p) : Prop :=
-  forall (ns' : NameSets.t) (f' : function ns'),
-    ns' ; f' |- p -> ns = ns' /\ f = f'.
+Definition Uniqueness {ns} {f} {p} (ty : ns ; f |- p) : Prop :=
+  forall (ns' : NameSets.t) (f' : Fun.temp_name_mapping),
+    ns' ; f' |- p -> NameSets.Equal ns ns' /\ f = f'.
 
-Lemma uniqueness : forall (ns : NameSets.t) (f : function ns) (p : config) (ty : ns ; f |- p), Uniqueness ty.
+Lemma uniqueness : forall ns f p (ty : ns ; f |- p), Uniqueness ty.
 Proof.
   unfold Uniqueness.
   intros.
-  remember p.
   split.
-  induction ty.
-    inversion H.
-    induction H.
+  (* Equal ns ns' *)
+  generalize dependent ns'.
+  generalize dependent f'.
+  induction ty; intros.
+    inversion H; auto.
+
+    inversion H; auto.
+
+    inversion H; subst; auto.
+      apply IHty in H5.
+      setoid_rewrite <- H5.
+      setoid_rewrite <- NameSets.P.singleton_equal_add.
       auto.
+
+      apply IHty in H3.
+      symmetry in H3.
+      apply NameSets.P.empty_is_empty_2 in H3.
+      apply add_not_empty in H3.
+      easy.
+
+    inversion H0; subst; auto.
+      apply IHty in H6.
+      setoid_rewrite <- H6.
+      setoid_rewrite NameSets.P.singleton_equal_add.
+      setoid_rewrite add_join.
       auto.
 
+      apply IHty in H4.
+      auto.
 
-      rewrite <- IHtyping in H0.
-      rewrite <- IHtyping in H1.
+    inversion H1; subst.
+      apply IHty in H5.
+      setoid_rewrite H5.
+      setoid_rewrite NameSets.P.singleton_equal_add.
+      auto.
 
-      assert (Option.to_set z = NameSets.empty).
-      compute in H0.
-      unfold NameSets.empty.
-      rewrite
+      apply IHty in H6.
+      setoid_rewrite H6.
+      setoid_rewrite NameSets.P.singleton_equal_add.
+      setoid_rewrite add_join.
+      auto.
+
+      apply IHty in H7.
+      setoid_rewrite H7.
+      auto.
+
+      apply IHty in H5.
+      setoid_rewrite H5.
+      setoid_rewrite add_join.
+      auto.
+
+    inversion H2; subst; auto.
+      apply IHty in H6.
+      apply NameSets.P.empty_is_empty_2 in H6.
+      apply add_not_empty in H6.
+      easy.
+
+      apply IHty in H7.
+      setoid_rewrite H7.
+      auto.
+
+      apply IHty in H8.
+      setoid_rewrite <- H8.
+      setoid_rewrite add_join.
+      auto.
+
+      apply IHty in H6.
+      setoid_rewrite H6.
+      auto.
+
+    inversion H0; subst; auto.
+      apply IHty1 in H3.
+      apply IHty2 in H6.
+      setoid_rewrite H3.
+      setoid_rewrite H6.
+      auto.
+
+    inversion H; subst; auto.
+      apply IHty in H3.
+      setoid_rewrite H3.
+      auto.
+
+  (* f = f' *)
+  generalize dependent ns'.
+  generalize dependent f'.
+  induction ty; intros.
+    inversion H; auto.
+
+    inversion H; auto.
+
+    inversion H; subst; auto.
+      apply IHty in H5.
+      symmetry in H5.
+      apply Fun.ch_singleton_not_empty in H5.
+      easy.
+
+      apply IHty in H3.
+      symmetry in H3.
+      apply Fun.ch_two_not_empty in H3.
+      easy.
+
+    inversion H0; subst; auto.
+      apply IHty in H6.
+      apply Fun.ch_singleton_equal in H6.
+      easy.
+
+      apply IHty in H4.
+      auto.
+
+    inversion H1; subst; auto.
+      apply IHty in H5.
+      apply Fun.ch_singleton_not_empty in H5.
+      easy.
+
+      apply IHty in H6.
+      apply Fun.ch_singleton_equal in H6.
+      rewrite H6 in H.
+      exfalso; apply H; auto.
+
+      apply IHty in H7.
+      apply Fun.ch_singleton_equal in H7.
+      rewrite H7.
+      auto.
+
+      apply IHty in H5.
+      apply equal_f with x in H5.
+      unfold Fun.ch_singleton in H5.
+      unfold Fun.ch_two in H5.
+      rewrite beq_name_refl in H5.
+      apply beq_name_false_iff in H.
+      rewrite beq_name_sym in H.
+      rewrite H in H5.
+      discriminate.
+
+    inversion H2; subst; auto.
+      apply IHty in H6.
+      apply Fun.ch_two_not_empty in H6; easy.
+
+      apply IHty in H7.
+      auto.
+
+      apply IHty in H8.
+      apply equal_f with x in H8.
+      unfold Fun.ch_singleton in H8.
+      unfold Fun.ch_two in H8.
+      rewrite beq_name_refl in H8.
+      apply beq_name_false_iff in H9.
+      rewrite beq_name_sym in H9.
+      rewrite H9 in H8.
+      discriminate.
+
+      apply IHty in H6.
+      auto.
+
+    inversion H0; subst; auto.
+      apply IHty1 in H3.
+      apply IHty2 in H6.
+      rewrite H3.
+      rewrite H6.
+      auto.
+
+    inversion H; subst; auto.
+      apply IHty in H3.
+      rewrite H3.
+      auto.
+Qed.
 
 Theorem Soundness : forall (ns : NameSets.t) (f : function ns) (p : config) (ty : ns ; f |- p),
                       ConfigSubset ty /\ FunctionProperty ty /\ Uniqueness ty.
@@ -725,6 +874,22 @@ Fixpoint action_names (a : action) : NameSets.t :=
   end.
 
 Fixpoint action_bound_names (a : action) : NameSets.t. Admitted.
+
+
+Definition replace (x y z : name) : name :=
+  match NameOrderedType.compare x z with
+    | Eq => y
+    | _ => z
+  end.
+
+Fixpoint replace_names (x y : name) (c : config) : config :=
+  match c with
+    | nil => nil
+    | create n1 n2 c' => create (replace x y n1) (replace x y n2) (replace_names x y c')
+    | send n1 n2 => send (replace x y n1) (replace x y n2)
+    | restrict n c' => restrict (replace x y n) (replace_names x y c')
+    | compose c1 c2 => compose (replace_names x y c1) (replace_names x y c2)
+  end.
 
 Reserved Notation "a '/' p '==>' q" (at level 40).
 

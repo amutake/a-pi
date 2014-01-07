@@ -1,4 +1,4 @@
-Require Import Coq.Lists.List Names.
+Require Import Coq.Lists.List Coq.Logic.FunctionalExtensionality Names.
 
 Module Fun.
 
@@ -6,7 +6,19 @@ Module Fun.
 
   Definition temp_name_mapping_star := star -> option star.
 
+  Definition empty : temp_name_mapping := fun _ => None.
+
   Definition domain (f : temp_name_mapping) (x : name) := f x <> None.
+
+  Lemma domain_not_empty : forall f x, domain f x -> f <> empty.
+  Proof.
+    intros.
+    intro.
+    unfold domain in H.
+    apply equal_f with x in H0.
+    compute in H0.
+    auto.
+  Qed.
 
   Definition to_star_function (f : temp_name_mapping) : temp_name_mapping_star :=
     fun s : star =>
@@ -33,6 +45,44 @@ Module Fun.
                     end
         | None => f2 x
       end.
+
+  Lemma fun_plus_empty_split : forall f1 f2, fun_plus f1 f2 = empty <-> f1 = empty /\ f2 = empty.
+  Proof.
+    unfold fun_plus.
+    split.
+      intro.
+      split.
+      apply functional_extensionality.
+      intro.
+      apply equal_f with x in H.
+      destruct (f1 x).
+        destruct s.
+          auto.
+          destruct (f2 x).
+            discriminate.
+            discriminate.
+          discriminate.
+        auto.
+
+      apply functional_extensionality.
+      intro.
+      apply equal_f with x in H.
+      destruct (f1 x).
+        destruct s.
+          discriminate.
+          destruct (f2 x).
+            discriminate.
+            discriminate.
+          discriminate.
+        auto.
+
+      intros.
+      inversion_clear H.
+      apply functional_extensionality.
+      rewrite H0; rewrite H1.
+      unfold empty.
+      auto.
+  Qed.
 
   Lemma fun_plus_domain : forall f1 f2 x, domain (fun_plus f1 f2) x <-> domain f1 x \/ domain f2 x.
   Proof.
@@ -110,6 +160,8 @@ Module Fun.
       apply H1.
       auto.
   Qed.
+
+  (* Lemma fun_plus_left. Lemma fun_plus_right. *)
 
   Definition fun_remove f x : temp_name_mapping :=
     fun y : name =>
@@ -268,8 +320,6 @@ Module Fun.
     Compatible_prop : Fun_prop (fun_plus f1 f2)
   }.
 
-  Definition empty : temp_name_mapping := fun _ => None.
-
   (* ch_empty *)
 
   Definition ch_empty := empty.
@@ -315,6 +365,32 @@ Module Fun.
     fun x => if beq_name n x
              then Some star_bottom
              else None.
+
+  Lemma ch_singleton_equal : forall x y, ch_singleton x = ch_singleton y <-> x = y.
+  Proof.
+    unfold ch_singleton.
+    split; intros.
+      apply equal_f with x in H.
+      rewrite beq_name_refl in H.
+      destruct (beq_name y x) eqn:?.
+        apply beq_name_true_iff in Heqb.
+        auto.
+
+        discriminate.
+
+      rewrite H.
+      auto.
+  Qed.
+
+  Lemma ch_singleton_not_empty : forall x, ch_singleton x <> empty.
+  Proof.
+    intros.
+    intro.
+    apply equal_f with x in H.
+    unfold ch_singleton in H.
+    rewrite beq_name_refl in H.
+    discriminate.
+  Qed.
 
   Lemma ch_singleton_domain : forall x y, domain (ch_singleton x) y <-> x = y.
   Proof.
@@ -439,6 +515,17 @@ Module Fun.
       else if beq_name m x
            then Some star_bottom
            else None.
+
+  Lemma ch_two_not_empty : forall x y, ch_two x y <> empty.
+  Proof.
+    intros.
+    intro.
+    apply equal_f with x in H.
+    unfold ch_two in H.
+    rewrite beq_name_refl in H.
+    compute in H.
+    discriminate.
+  Qed.
 
   Theorem ch_two_domain : forall x y z, domain (ch_two x y) z <-> x = z \/ y = z.
   Proof.
