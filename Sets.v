@@ -91,34 +91,6 @@ Proof.
     auto.
 Qed.
 
-Lemma inter_empty_not_mem' : forall ns1 ns2 x y,
-                              NameSets.inter ns1 ns2 = NameSets.empty ->
-                              NameSets.mem x ns1 = true ->
-                              NameSets.mem y ns2 = true ->
-                              x <> y.
-Proof.
-Admitted.
-
-Lemma inter_empty_1 : forall ns1 ns2 x,
-                        NameSets.inter (NameSets.add x ns1) ns2 = NameSets.empty ->
-                        NameSets.inter ns1 ns2 = NameSets.empty.
-Proof.
-  (* induction ns1, ns2; destruct x; intros. *)
-  (*   compute; auto. *)
-  (*   simpl; unfold NameSets.empty; auto. *)
-  (*   compute. *)
-  (*   compute in H. *)
-  (*   auto. *)
-  (*   destruct a, e. *)
-  (*   unfold NameSets.inter in H. *)
-  (*   unfold NameSets.inter. *)
-  (*   simpl in H. *)
-  (*   simpl. *)
-
-  (*   compute. *)
-  (*   compute in H. *)
-Admitted.
-
 Lemma empty_mem_false : forall ns,
                           NameSets.Empty ns ->
                           forall x, ~ NameSets.In x ns.
@@ -153,62 +125,16 @@ Proof.
     discriminate.
 Qed.
 
-Lemma inter_head : forall ns1 ns2 x, NameSets.Equal (NameSets.inter (NameSets.add x ns1) (NameSets.add x ns2)) (NameSets.add x (NameSets.inter ns1 ns2)).
-Proof.
-  intros.
-  destruct (NameSets.P.In_dec x ns2).
-  rewrite (NameSets.P.add_equal i).
-  apply NameSets.P.inter_add_1.
-  auto.
-  setoid_rewrite NameSets.P.inter_sym.
-  destruct (NameSets.P.In_dec x ns1).
-  rewrite (NameSets.P.add_equal i).
-  apply NameSets.P.inter_add_1.
-  auto.
-  setoid_rewrite NameSets.P.inter_sym.
-  elim ns1 using NameSets.P.set_induction.
-    intros.
-    apply NameSets.P.empty_is_empty_1 in H.
-    setoid_rewrite H.
-    elim ns2 using NameSets.P.set_induction.
-      intros.
-      apply NameSets.P.empty_is_empty_1 in H0.
-      setoid_rewrite H0.
-      (* setoid_rewrite NameSets.EP. *)
-
-
-
-
-
-Admitted.
-
 Lemma add_not_empty : forall x ns, ~ NameSets.Empty (NameSets.add x ns).
 Proof.
+  unfold not.
+  unfold NameSets.Empty.
   intros.
-  intro.
-  elim ns using NameSets.P.set_induction.
-  intros.
-Admitted.
-
-
-Lemma inter_head_not_empty :
-  forall ns1 ns2 x, ~ NameSets.Empty (NameSets.inter (NameSets.add x ns1) (NameSets.add x ns2)).
-Proof.
-  intros.
-  intro.
-  setoid_rewrite inter_head in H.
-
-
-  assert (forall ns, NameSets.Equal (NameSets.inter ns ns) ns).
-    intro.
-    apply NameSets.P.inter_subset_equal.
-    apply NameSets.P.subset_refl.
-Admitted.
-
-Lemma union_add_singleton :
-  forall x y, NameSets.Equal (NameSets.union (NameSets.singleton x) (NameSets.singleton y))
-                    (NameSets.add x (NameSets.singleton y)).
-Admitted.
+  apply H with x.
+  apply NameSets.F.add_1.
+  destruct x.
+  auto.
+Qed.
 
 Lemma add_join : forall x s, NameSets.Equal
                                (NameSets.add x (NameSets.add x s))
@@ -271,4 +197,20 @@ Proof.
 
     apply H.
     eapply NameSets.F.inter_3; auto.
+Qed.
+
+Lemma inter_not_empty : forall s,
+                          ~ NameSets.Empty s ->
+                          ~ NameSets.Empty (NameSets.inter s s).
+Proof.
+  intros.
+  intro.
+  unfold NameSets.Empty in H.
+  apply H.
+  intros; intro.
+  apply inter_empty with (x := a) in H0.
+  inversion_clear H0.
+  absurd (NameSets.In a s).
+    apply H2 in H1; auto.
+    auto.
 Qed.

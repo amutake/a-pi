@@ -78,6 +78,29 @@ Proof.
   auto.
 Qed.
 
+Lemma eq_name_double_neg : forall (x y : name), ~ ~ x = y <-> x = y.
+Proof.
+  split; intros.
+    apply beq_name_true_iff.
+    destruct (beq_name x y) eqn:?.
+      auto.
+
+      exfalso; apply H; apply beq_name_false_iff; auto.
+    intro.
+    apply H0; auto.
+Qed.
+
+Lemma name_dec : forall x y : name, {x = y} + {x <> y}.
+Proof.
+  intros.
+  destruct (beq_name x y) eqn:?.
+    apply beq_name_true_iff in Heqb.
+    left; auto.
+
+    apply beq_name_false_iff in Heqb.
+    right; auto.
+Qed.
+
 Inductive star :=
   | star_name : name -> star
   | star_bottom : star
