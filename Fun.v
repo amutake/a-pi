@@ -844,6 +844,8 @@ Module Fun.
   Qed.
 
   Lemma fun_plus_prop_2 : forall f1 f2,
+                            range_domain f1 ->
+                            range_domain f2 ->
                             (forall x,
                                (domain f1 x -> ~ domain f2 x) /\
                                (domain f2 x -> ~ domain f1 x)) ->
@@ -859,88 +861,114 @@ Module Fun.
       destruct (f1 y) eqn:?.
         induction s.
           induction s0.
-            apply H0.
+            apply H2.
               exists n; auto.
               exists n0; auto.
               rewrite Heqo; rewrite Heqo0; auto.
             destruct (f2 y) eqn:?.
-              specialize (H y).
-              inversion H.
-              rewrite Heqo0 in H5.
-              rewrite Heqo1 in H5.
+              specialize (H1 y).
+              inversion H1.
+              rewrite Heqo0 in H7.
+              rewrite Heqo1 in H7.
               assert (Some star_bottom <> None).
                 intro; discriminate.
-              apply H5 in H7.
-              exfalso; apply H7; intro; discriminate.
+              apply H7 in H9.
+              exfalso; apply H9; intro; discriminate.
 
               discriminate.
             discriminate.
           induction s0.
             destruct (f2 x) eqn:?.
-              specialize (H x).
-              inversion H.
-              rewrite Heqo in H5.
-              rewrite Heqo1 in H5.
+              specialize (H1 x).
+              inversion H1.
+              rewrite Heqo in H7.
+              rewrite Heqo1 in H7.
               assert (Some star_bottom <> None).
                 intro; discriminate.
-              apply H5 in H7.
-              exfalso; apply H7; intro; discriminate.
+              apply H7 in H9.
+              exfalso; apply H9; intro; discriminate.
 
               discriminate.
             destruct (f2 x) eqn:?.
-              specialize (H x).
-              inversion H.
-              rewrite Heqo in H5.
-              rewrite Heqo1 in H5.
+              specialize (H1 x).
+              inversion H1.
+              rewrite Heqo in H7.
+              rewrite Heqo1 in H7.
               assert (Some star_bottom <> None).
                 intro; discriminate.
-              apply H5 in H7.
-              exfalso; apply H7; intro; discriminate.
+              apply H7 in H9.
+              exfalso; apply H9; intro; discriminate.
 
-              inversion H2; discriminate.
-            inversion H3; discriminate.
-          inversion H2; discriminate.
+              inversion H4; discriminate.
+            inversion H5; discriminate.
+          inversion H4; discriminate.
 
         induction s.
-          symmetry in H4.
+          symmetry in H6.
+          unfold range_domain, range, domain in H.
+          unfold range_domain, range, domain in H0.
+          specialize (H n).
+          specialize (H0 n).
+          specialize (H1 n).
+          inversion H1.
+          assert (exists y : name, f1 y = Some (star_name n)).
+            exists x; auto.
+          assert (exists y : name, f2 y = Some (star_name n)).
+            exists y; auto.
+          apply H in H9.
+          apply H0 in H10.
+          apply H7 in H9.
+          exfalso; apply H9; auto.
+
           destruct (f2 x) eqn:?.
-            specialize (H x).
-            inversion H.
-            rewrite Heqo in H5.
-            rewrite Heqo1 in H5.
-            assert (Some (star_name n) <> None).
-              intro; discriminate.
-            apply H5 in H7.
-            exfalso; apply H7; intro; discriminate.
+            apply H3.
+              rewrite Heqo1; auto.
 
-            clear H2; clear H3.
+              auto.
 
+              rewrite Heqo1; auto.
+            inversion H4; discriminate.
 
+          inversion H4; discriminate.
+      inversion H4; subst.
+      rewrite H7 in H6.
+      destruct (f1 y) eqn:?.
+        destruct s.
+          inversion H6; subst.
+          unfold range_domain, range, domain in H.
+          unfold range_domain, range, domain in H0.
+          specialize (H n).
+          specialize (H0 n).
+          assert (exists y, f1 y = Some (star_name n)).
+            exists y; auto.
+          assert (exists y, f2 y = Some (star_name n)).
+            exists x; auto.
+          apply H in H8.
+          apply H0 in H9.
+          specialize (H1 n).
+          inversion H1.
+          apply H10 in H8.
+          exfalso; apply H8; auto.
 
+          destruct (f2 y) eqn:?.
+            specialize (H1 y).
+            inversion H1.
+            assert (f1 y <> None).
+              rewrite Heqo0; intro; discriminate.
+            apply H8 in H10.
+            exfalso; apply H10.
+            rewrite Heqo1; intro; discriminate.
 
+          discriminate.
+        discriminate.
 
+        apply H3.
+          exists x0; auto.
 
+          exists x0; rewrite H6; auto.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  Admitted.
+          rewrite H7; auto.
+  Qed.
 
   Lemma fun_plus_prop_3 : forall f1 f2,
                             (forall x,

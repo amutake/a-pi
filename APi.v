@@ -367,6 +367,27 @@ Proof.
         auto.
 Qed.
 
+Lemma typing_range_domain : forall ns f p (ty : ns ; f |- p), Fun.range_domain f.
+Proof.
+  intros.
+  induction ty.
+    apply Fun.ch_empty_range_domain.
+
+    apply Fun.ch_empty_range_domain.
+
+    apply Fun.ch_singleton_range_domain.
+
+    apply Fun.ch_singleton_range_domain.
+
+    apply Fun.ch_two_range_domain; auto.
+
+    apply Fun.ch_two_range_domain; auto.
+
+    apply Fun.fun_plus_range_domain; auto.
+
+    apply Fun.fun_remove_range_domain; auto.
+Qed.
+
 Fixpoint config_names (c : config) : NameSets.t :=
   match c with
     | nil => NameSets.empty
@@ -595,10 +616,12 @@ Proof.
     apply Fun.ch_two_prop_2.
 
     apply Fun.fun_plus_prop_2; auto.
-    intros.
-    eapply fun_exclusive with
-    (ns1 := ns1) (ns2 := ns2) (f1 := f1) (f2 := f2) (p1 := p1) (p2 := p2) (x := x)
-      in H; auto.
+      eapply typing_range_domain; apply ty1.
+      eapply typing_range_domain; apply ty2.
+      intros.
+      eapply fun_exclusive with
+      (ns1 := ns1) (ns2 := ns2) (f1 := f1) (f2 := f2) (p1 := p1) (p2 := p2) (x := x)
+        in H; auto.
 
     apply Fun.fun_remove_prop_2; auto.
 Qed.
