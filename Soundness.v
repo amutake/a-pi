@@ -1,4 +1,4 @@
-Require Import Coq.Logic.FunctionalExtensionality Coq.Arith.EqNat Coq.MSets.MSets Names Sets Fun Config.
+Require Import Coq.Logic.FunctionalExtensionality Coq.Arith.EqNat Coq.MSets.MSets Names Sets Fun Config Typing.
 
 Definition ConfigSubset {ns} {f} {p} (ty : ns ; f |- p) : Prop :=
   NameSets.For_all (fun x => ConfigFreeName x p) ns.
