@@ -1,4 +1,4 @@
-Require Import Coq.Logic.FunctionalExtensionality Coq.Arith.EqNat Coq.MSets.MSets Coq.Vectors.Vector Names Sets Fun.
+Require Import Coq.Logic.FunctionalExtensionality Coq.Arith.EqNat Coq.MSets.MSets Names Sets Fun.
 
 Inductive config : Set :=
   | nil : config
@@ -6,9 +6,6 @@ Inductive config : Set :=
   | send : name -> name -> config
   | restrict : name -> config -> config
   | compose : config -> config -> config.
-  (* | instantiate_1 : forall n : nat, name -> Vector.t name n -> name -> config -> config *)
-  (* | instantiate_2 : forall n : nat, name -> name -> Vector.t name n -> name -> config -> config. *)
-
 
 Inductive ConfigName (x : name) : config -> Prop :=
   | send_name_1 : forall y, ConfigName x (send x y)

@@ -3,7 +3,7 @@ Require Import Coq.Logic.FunctionalExtensionality Coq.Arith.EqNat Coq.MSets.MSet
 Definition ConfigSubset {ns} {f} {p} (ty : ns ; f |- p) : Prop :=
   NameSets.For_all (fun x => ConfigFreeName x p) ns.
 
-Lemma config_subset : forall (ns : NameSets.t) (f : Fun.temp_name_mapping) (p : config) (ty : ns ; f |- p), ConfigSubset ty.
+Lemma config_subset : forall ns f p (ty : ns ; f |- p), ConfigSubset ty.
 Proof.
   intros.
   unfold ConfigSubset.
@@ -82,10 +82,10 @@ Proof.
       auto.
 Qed.
 
-Definition FunctionProperty {ns : NameSets.t} {f : Fun.temp_name_mapping} {p : config} (ty : ns ; f |- p) : Prop :=
+Definition FunctionProperty {ns} {f} {p} (ty : ns ; f |- p) : Prop :=
   Fun.Fun_prop f.
 
-Lemma function_property_1 : forall (ns : NameSets.t) (f : Fun.temp_name_mapping) (p : config) (ty : ns ; f |- p), Fun.Fun_prop_1 f.
+Lemma function_property_1 : forall ns f p (ty : ns ; f |- p), Fun.Fun_prop_1 f.
 Proof.
   intros.
   induction ty.
@@ -137,7 +137,7 @@ Proof.
       auto.
 Qed.
 
-Lemma function_property_2 : forall (ns : NameSets.t) (f : Fun.temp_name_mapping) (p : config) (ty : ns ; f |- p), Fun.Fun_prop_2 f.
+Lemma function_property_2 : forall ns f p (ty : ns ; f |- p), Fun.Fun_prop_2 f.
 Proof.
   intros.
   induction ty.
@@ -190,7 +190,7 @@ Proof.
     apply Fun.fun_remove_prop_3; auto.
 Qed.
 
-Lemma function_property : forall (ns : NameSets.t) (f : Fun.temp_name_mapping) (p : config) (ty : ns ; f |- p), FunctionProperty ty.
+Lemma function_property : forall ns f p (ty : ns ; f |- p), FunctionProperty ty.
 Proof.
   unfold FunctionProperty.
   unfold Fun.Fun_prop.
