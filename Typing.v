@@ -31,6 +31,12 @@ Inductive typing : NameSets.t -> Fun.temp_name_mapping -> config -> Prop :=
   | RES : forall ns f p x,
             ns ; f |- p ->
             NameSets.remove x ns ; Fun.fun_remove f x |- restrict x p
+  | CASE_nil : forall x, NameSets.empty ; Fun.empty |- caseof x List.nil
+  | CASE_cons : forall ns ns' f f' p x y l,
+                  ns ; f |- p ->
+                  ns' ; f' |- caseof x l ->
+                  Fun.Compatible f f' ->
+                  NameSets.union ns ns' ; Fun.fun_plus f f' |- caseof x ((y, p) :: l)
   where "ns ';' f '|-' p" := (typing ns f p).
 
 Hint Constructors typing.
@@ -181,6 +187,20 @@ Proof.
       apply H0.
       rewrite H.
       auto.
+
+    exfalso; apply H; auto.
+
+    apply Fun.fun_plus_domain in H.
+    apply NameSets.F.mem_iff.
+    apply mem_union.
+    inversion H.
+      apply IHty1 in H1.
+      apply NameSets.F.mem_iff in H1.
+      left; auto.
+
+      apply IHty2 in H1.
+      apply NameSets.F.mem_iff in H1.
+      right; auto.
 Qed.
 
 Lemma typing_domain_2 : forall ns f p (ty : ns ; f |- p) x,
@@ -294,6 +314,29 @@ Proof.
       destruct (f x).
         exfalso; apply H2; intro; discriminate.
         auto.
+
+    apply NameSets.F.empty_iff with x.
+    apply NameSets.F.mem_iff; auto.
+
+    rewrite NameSets.EP.union_mem in H.
+    apply orb_true_iff in H.
+    inversion H.
+      apply IHty1 in H3; auto.
+      apply H0 in H1.
+      apply Fun.fun_plus_not_domain in H1.
+      inversion H1.
+      unfold Fun.domain in H4.
+      destruct (f x).
+        exfalso; apply H4; intro; discriminate.
+        auto.
+      apply IHty2 in H3; auto.
+      apply H0 in H1.
+      apply Fun.fun_plus_not_domain in H1.
+      inversion H1.
+      unfold Fun.domain in H5.
+      destruct (f' x).
+        exfalso; apply H5; intro; discriminate.
+        auto.
 Qed.
 
 Lemma typing_range_domain : forall ns f p (ty : ns ; f |- p), Fun.range_domain f.
@@ -315,4 +358,8 @@ Proof.
     apply Fun.fun_plus_range_domain; auto.
 
     apply Fun.fun_remove_range_domain; auto.
+
+    apply Fun.ch_empty_range_domain.
+
+    apply Fun.fun_plus_range_domain; auto.
 Qed.

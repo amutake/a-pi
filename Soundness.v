@@ -80,6 +80,18 @@ Proof.
       apply IHty in H1.
       auto.
       auto.
+
+    inversion H.
+
+    apply NameSets.F.union_1 in H0.
+    inversion_clear H0.
+      apply IHty1 in H1.
+      apply caseof_free_h_snd.
+      auto.
+
+      apply IHty2 in H1.
+      apply caseof_free_t.
+      auto.
 Qed.
 
 Definition FunctionProperty {ns} {f} {p} (ty : ns ; f |- p) : Prop :=
@@ -104,6 +116,10 @@ Proof.
     apply Fun.fun_plus_prop_1; auto.
 
     apply Fun.fun_remove_prop_1; auto.
+
+    apply Fun.ch_empty_prop_1.
+
+    apply Fun.fun_plus_prop_1; auto.
 Qed.
 
 Lemma fun_exclusive : forall ns1 ns2 f1 f2 p1 p2
@@ -162,6 +178,13 @@ Proof.
         in H; auto.
 
     apply Fun.fun_remove_prop_2; auto.
+
+    apply Fun.ch_empty_prop_2.
+
+    inversion H.
+    inversion Compatible_prop.
+    inversion H1.
+    auto.
 Qed.
 
 Lemma function_property_3 : forall ns f p (ty : ns ; f |- p), Fun.Fun_prop_3 f.
@@ -188,6 +211,12 @@ Proof.
         apply ty2.
 
     apply Fun.fun_remove_prop_3; auto.
+
+    apply Fun.ch_empty_prop_3.
+
+    inversion H.
+    inversion Compatible_prop.
+    inversion H1; auto.
 Qed.
 
 Lemma function_property : forall ns f p (ty : ns ; f |- p), FunctionProperty ty.
@@ -295,6 +324,15 @@ Proof.
       setoid_rewrite H3.
       auto.
 
+    inversion H; subst; auto.
+
+    inversion H0; subst; auto.
+    apply IHty1 in H6.
+    apply IHty2 in H8.
+    setoid_rewrite H6.
+    setoid_rewrite H8.
+    auto.
+
   (* f = f' *)
   generalize dependent ns'.
   generalize dependent f'.
@@ -378,6 +416,15 @@ Proof.
       apply IHty in H3.
       rewrite H3.
       auto.
+
+    inversion H; auto.
+
+    inversion H0; subst; auto.
+    apply IHty1 in H6.
+    apply IHty2 in H8.
+    rewrite H6.
+    rewrite H8.
+    auto.
 Qed.
 
 Theorem Soundness : forall ns f p (ty : ns ; f |- p),

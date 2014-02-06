@@ -50,6 +50,19 @@ Module Fun.
         | None => f2 x
       end.
 
+  Lemma fun_plus_assoc : forall f1 f2 f3, fun_plus f1 (fun_plus f2 f3) = fun_plus (fun_plus f1 f2) f3.
+  Proof.
+    intros.
+    apply functional_extensionality.
+    intros.
+    unfold fun_plus.
+    destruct (f1 x); auto.
+    destruct s; auto.
+    destruct (f2 x); auto.
+    destruct s; auto.
+    destruct (f3 x); auto.
+  Qed.
+
   Lemma fun_plus_empty_split : forall f1 f2, fun_plus f1 f2 = empty <-> f1 = empty /\ f2 = empty.
   Proof.
     unfold fun_plus.
@@ -414,6 +427,12 @@ Module Fun.
     Compatible_comm : Fun_comm f1 f2;
     Compatible_prop : Fun_prop (fun_plus f1 f2)
   }.
+
+  Fixpoint Mutually_compatible (fs : list temp_name_mapping) :=
+    match fs with
+      | nil => True
+      | f :: fs' => Forall (Compatible f) fs' /\ Mutually_compatible fs'
+    end.
 
   (* ch_empty *)
 
@@ -1048,6 +1067,244 @@ Module Fun.
           auto.
           auto.
         exfalso; apply H2; auto.
+  Qed.
+
+  Theorem fun_plus_prop : forall f1 f2,
+                            range_domain f1 ->
+                            range_domain f2 ->
+                            (forall x,
+                               (domain f1 x -> ~ domain f2 x) /\
+                               (domain f2 x -> ~ domain f1 x)) ->
+                            Fun_prop f1 ->
+                            Fun_prop f2 ->
+                            Fun_prop (fun_plus f1 f2).
+  Proof.
+    intros.
+    inversion_clear H2.
+    inversion_clear H5.
+    inversion_clear H3.
+    inversion_clear H7.
+    unfold Fun_prop.
+    split; try split.
+    apply fun_plus_prop_1; auto.
+    apply fun_plus_prop_2; auto.
+    apply fun_plus_prop_3; auto.
+  Qed.
+
+  Lemma fun_prop_plus_fst : forall f1 f2,
+                              Fun_prop (fun_plus f1 f2) ->
+                              range_domain f1 ->
+                              Fun_prop f1.
+  Proof.
+    intros f1 f2 H rd.
+    inversion_clear H.
+    inversion_clear H1.
+
+    unfold Fun_prop.
+    unfold Fun_prop_1 in H0.
+    unfold Fun_prop_2 in H.
+    unfold Fun_prop_3 in H2.
+
+    split; try split.
+      unfold Fun_prop_1.
+      intros.
+      intro.
+      apply H0 with x.
+      unfold fun_plus.
+      rewrite H1; auto.
+
+      unfold Fun_prop_2; intros.
+      apply H.
+        inversion_clear H1.
+        exists x0.
+        unfold fun_plus.
+        rewrite H5; auto.
+
+        inversion_clear H3.
+        exists x0.
+        unfold fun_plus.
+        rewrite H5; auto.
+
+        unfold fun_plus.
+        destruct (f1 x); auto.
+          destruct s; auto.
+            destruct (f1 y); auto.
+              destruct s; auto.
+              inversion H4.
+            inversion H4.
+          destruct (f1 y); auto.
+            destruct s; auto.
+              discriminate.
+              inversion H1; discriminate.
+              inversion H1; discriminate.
+            discriminate.
+          inversion H1; discriminate.
+          inversion H1; discriminate.
+
+      unfold Fun_prop_3; intros.
+      unfold fun_join.
+      unfold to_star_function.
+
+      unfold range_domain in rd.
+      unfold range in rd.
+
+      unfold fun_join in H2.
+      unfold domain in H2, H1, rd.
+      unfold to_star_function in H2.
+      unfold fun_plus in H2.
+      specialize H2 with x.
+      destruct (f1 x) eqn:?; auto.
+        destruct s; auto.
+        destruct (f1 n) eqn:?; auto.
+          destruct s; auto.
+          specialize rd with n.
+          assert (exists y, f1 y = Some (star_name n)).
+            exists x; auto.
+          apply rd in H3.
+          easy.
+
+          exfalso; apply H1; auto.
+  Qed.
+
+  Lemma compatible_split : forall f1 f2,
+                             Compatible f1 f2 ->
+                             range_domain f1 ->
+                             range_domain f2 ->
+                             Fun_prop f1 /\ Fun_prop f2.
+  Proof.
+    assert (forall f1 f2, Fun_prop (fun_plus f1 f2) -> range_domain f1 -> Fun_prop f1).
+    intros f1 f2 H rd.
+    inversion_clear H.
+    inversion_clear H1.
+
+    unfold Fun_prop.
+    unfold Fun_prop_1 in H0.
+    unfold Fun_prop_2 in H.
+    unfold Fun_prop_3 in H2.
+
+    split; try split.
+      unfold Fun_prop_1.
+      intros.
+      intro.
+      apply H0 with x.
+      unfold fun_plus.
+      rewrite H1; auto.
+
+      unfold Fun_prop_2; intros.
+      apply H.
+        inversion_clear H1.
+        exists x0.
+        unfold fun_plus.
+        rewrite H5; auto.
+
+        inversion_clear H3.
+        exists x0.
+        unfold fun_plus.
+        rewrite H5; auto.
+
+        unfold fun_plus.
+        destruct (f1 x); auto.
+          destruct s; auto.
+            destruct (f1 y); auto.
+              destruct s; auto.
+              inversion H4.
+            inversion H4.
+          destruct (f1 y); auto.
+            destruct s; auto.
+              discriminate.
+              inversion H1; discriminate.
+              inversion H1; discriminate.
+            discriminate.
+          inversion H1; discriminate.
+          inversion H1; discriminate.
+
+      unfold Fun_prop_3; intros.
+      unfold fun_join.
+      unfold to_star_function.
+
+      unfold range_domain in rd.
+      unfold range in rd.
+
+      unfold fun_join in H2.
+      unfold domain in H2, H1, rd.
+      unfold to_star_function in H2.
+      unfold fun_plus in H2.
+      specialize H2 with x.
+      destruct (f1 x) eqn:?; auto.
+        destruct s; auto.
+        destruct (f1 n) eqn:?; auto.
+          destruct s; auto.
+          specialize rd with n.
+          assert (exists y, f1 y = Some (star_name n)).
+            exists x; auto.
+          apply rd in H3.
+          easy.
+
+          exfalso; apply H1; auto.
+
+  intros.
+  inversion H0 as [c p].
+  split.
+    apply H with f2; auto.
+    unfold Fun_comm in c.
+    rewrite c in p.
+    apply H with f1; auto.
+Qed.
+
+  Theorem fun_plus_compatible : forall f f1 f2,
+                                  range_domain f ->
+                                  range_domain f1 ->
+                                  range_domain f2 ->
+                                  Compatible f (fun_plus f1 f2) ->
+                                  Compatible f1 f2 ->
+                                  Mutually_compatible (f :: f1 :: f2 :: nil).
+  Proof.
+    intros.
+    simpl.
+    inversion_clear H2 as [c0 p0].
+    inversion_clear H3 as [c1 p1].
+    unfold Fun_comm in c0.
+    unfold Fun_comm in c1.
+    subst.
+    assert (Fun_comm f f1).
+      unfold Fun_comm.
+      apply functional_extensionality; intros.
+      apply equal_f with x in c1.
+      apply equal_f with x in c0.
+      unfold fun_plus.
+      unfold fun_plus in c1, c0.
+      destruct (f x); auto.
+        destruct s; auto; destruct (f1 x); auto; destruct s; auto.
+        destruct (f1 x); auto; destruct s; auto.
+    assert (Fun_comm f f2).
+      rewrite c1 in c0.
+      symmetry in c1.
+      unfold Fun_comm.
+      apply functional_extensionality; intros.
+      apply equal_f with x in c1.
+      apply equal_f with x in c0.
+      unfold fun_plus.
+      unfold fun_plus in c1, c0.
+      destruct (f x); auto.
+        destruct s; auto; destruct (f2 x); auto; destruct s; auto.
+        destruct (f2 x); auto; destruct s; auto.
+    split; try (split; try (split; try (split; try split))).
+      apply Forall_cons; auto.
+        apply Build_compatible; auto.
+        rewrite fun_plus_assoc in p0.
+        apply fun_prop_plus_fst in p0; auto.
+        apply fun_plus_range_domain; auto.
+
+        apply Forall_cons; auto.
+        apply Build_compatible; auto.
+        rewrite c1 in p0.
+        rewrite fun_plus_assoc in p0.
+        apply fun_prop_plus_fst in p0; auto.
+        apply fun_plus_range_domain; auto.
+      apply Forall_cons; auto.
+      apply Build_compatible; auto.
+
+      auto.
   Qed.
 
   Lemma fun_remove_prop_1 : forall f x,
