@@ -1,12 +1,12 @@
 Require Import Coq.Logic.FunctionalExtensionality Coq.Arith.EqNat Coq.MSets.MSets Names Sets Fun Config Typing.
 
-Definition ConfigSubset {ns} {f} {p} (ty : ns ; f |- p) : Prop :=
+Definition ReceptionistSoundness {ns} {f} {p} (ty : ns ; f |- p) : Prop :=
   NameSets.For_all (fun x => ConfigFreeName x p) ns.
 
-Lemma config_subset : forall ns f p (ty : ns ; f |- p), ConfigSubset ty.
+Lemma receptionist_soundness : forall ns f p (ty : ns ; f |- p), ReceptionistSoundness ty.
 Proof.
   intros.
-  unfold ConfigSubset.
+  unfold ReceptionistSoundness.
   unfold NameSets.For_all.
   induction ty; intros.
     apply NameSets.F.empty_iff in H; easy.
@@ -113,10 +113,10 @@ Proof.
       rewrite H2; auto.
 Qed.
 
-Definition FunctionProperty {ns} {f} {p} (ty : ns ; f |- p) : Prop :=
+Definition TemporaryNameSoundness {ns} {f} {p} (ty : ns ; f |- p) : Prop :=
   Fun.Fun_prop f.
 
-Lemma function_property_1 : forall ns f p (ty : ns ; f |- p), Fun.Fun_prop_1 f.
+Lemma temporary_name_soundness_1 : forall ns f p (ty : ns ; f |- p), Fun.Fun_prop_1 f.
 Proof.
   intros.
   induction ty.
@@ -175,7 +175,7 @@ Proof.
       auto.
 Qed.
 
-Lemma function_property_2 : forall ns f p (ty : ns ; f |- p), Fun.Fun_prop_2 f.
+Lemma temporary_name_soundness_2 : forall ns f p (ty : ns ; f |- p), Fun.Fun_prop_2 f.
 Proof.
   intros.
   induction ty.
@@ -212,7 +212,7 @@ Proof.
     apply Fun.ch_2_prop_2.
 Qed.
 
-Lemma function_property_3 : forall ns f p (ty : ns ; f |- p), Fun.Fun_prop_3 f.
+Lemma temporary_name_soundness_3 : forall ns f p (ty : ns ; f |- p), Fun.Fun_prop_3 f.
 Proof.
   intros.
   induction ty.
@@ -248,27 +248,27 @@ Proof.
     apply Fun.ch_2_prop_3; auto.
 Qed.
 
-Lemma function_property : forall ns f p (ty : ns ; f |- p), FunctionProperty ty.
+Lemma temporary_name_soundness : forall ns f p (ty : ns ; f |- p), TemporaryNameSoundness ty.
 Proof.
-  unfold FunctionProperty.
+  unfold TemporaryNameSoundness.
   unfold Fun.Fun_prop.
   intros.
   split; try split.
-  eapply function_property_1.
+  eapply temporary_name_soundness_1.
   apply ty.
-  eapply function_property_2.
+  eapply temporary_name_soundness_2.
   apply ty.
-  eapply function_property_3.
+  eapply temporary_name_soundness_3.
   apply ty.
 Qed.
 
-Definition Uniqueness {ns} {f} {p} (ty : ns ; f |- p) : Prop :=
+Definition TypingUniqueness {ns} {f} {p} (ty : ns ; f |- p) : Prop :=
   forall (ns' : NameSets.t) (f' : Fun.temp_name_mapping),
     ns' ; f' |- p -> NameSets.Equal ns ns' /\ f = f'.
 
-Lemma uniqueness : forall ns f p (ty : ns ; f |- p), Uniqueness ty.
+Lemma typing_uniqueness : forall ns f p (ty : ns ; f |- p), TypingUniqueness ty.
 Proof.
-  unfold Uniqueness.
+  unfold TypingUniqueness.
   intros.
   split.
   (* Equal ns ns' *)
@@ -465,12 +465,12 @@ Proof.
 Qed.
 
 Theorem Soundness : forall ns f p (ty : ns ; f |- p),
-                      ConfigSubset ty /\ FunctionProperty ty /\ Uniqueness ty.
+                      ReceptionistSoundness ty /\ TemporaryNameSoundness ty /\ TypingUniqueness ty.
 Proof.
   intros.
   split.
-  apply config_subset.
+  apply receptionist_soundness.
   split.
-  apply function_property.
-  apply uniqueness.
+  apply temporary_name_soundness.
+  apply typing_uniqueness.
 Qed.
