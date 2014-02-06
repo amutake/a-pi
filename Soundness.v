@@ -126,25 +126,25 @@ Lemma fun_exclusive : forall ns1 ns2 f1 f2 p1 p2
                              (ty1 : ns1 ; f1 |- p1) (ty2 : ns2 ; f2 |- p2),
                         NameSets.Empty (NameSets.inter ns1 ns2) ->
                         (forall x,
-                           (Fun.domain f1 x -> ~ Fun.domain f2 x) /\
-                           (Fun.domain f2 x -> ~ Fun.domain f1 x)).
+                           (Fun.in_domain f1 x -> ~ Fun.in_domain f2 x) /\
+                           (Fun.in_domain f2 x -> ~ Fun.in_domain f1 x)).
 Proof.
   intros.
   eapply inter_empty in H.
   inversion_clear H.
   split; intros; intro.
-    apply typing_domain_1 with (x := x) in ty1.
+    apply typing_in_domain_1 with (x := x) in ty1.
       apply NameSets.F.mem_iff in ty1.
-      apply typing_domain_1 with (x := x) in ty2.
+      apply typing_in_domain_1 with (x := x) in ty2.
         apply NameSets.F.mem_iff in ty2.
         apply H0 in ty1.
         apply ty1; auto.
 
         auto.
       auto.
-    apply typing_domain_1 with (x := x) in ty1.
+    apply typing_in_domain_1 with (x := x) in ty1.
       apply NameSets.F.mem_iff in ty1.
-      apply typing_domain_1 with (x := x) in ty2.
+      apply typing_in_domain_1 with (x := x) in ty2.
         apply NameSets.F.mem_iff in ty2.
         apply H0 in ty1.
         apply ty1; auto.
@@ -170,8 +170,8 @@ Proof.
     apply Fun.ch_two_prop_2.
 
     apply Fun.fun_plus_prop_2; auto.
-      eapply typing_range_domain; apply ty1.
-      eapply typing_range_domain; apply ty2.
+      eapply typing_in_range_in_domain; apply ty1.
+      eapply typing_in_range_in_domain; apply ty2.
       intros.
       eapply fun_exclusive with
       (ns1 := ns1) (ns2 := ns2) (f1 := f1) (f2 := f2) (p1 := p1) (p2 := p2) (x := x)

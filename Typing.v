@@ -118,29 +118,29 @@ Proof.
       symmetry in H4; apply Fun.ch_two_not_empty in H4; auto.
 Qed.
 
-Lemma typing_domain_1 : forall ns f p (ty : ns ; f |- p) x,
-                        Fun.domain f x ->
+Lemma typing_in_domain_1 : forall ns f p (ty : ns ; f |- p) x,
+                        Fun.in_domain f x ->
                         NameSets.mem x ns = true.
 Proof.
   intros.
   induction ty.
-    unfold Fun.domain in H.
+    unfold Fun.in_domain in H.
     compute in H.
     auto.
 
-    unfold Fun.domain in H.
+    unfold Fun.in_domain in H.
     compute in H.
     auto.
 
-    apply Fun.ch_singleton_domain in H.
+    apply Fun.ch_singleton_in_domain in H.
     rewrite H.
     apply NameSets.EP.singleton_mem_1.
 
-    apply Fun.ch_singleton_domain in H.
+    apply Fun.ch_singleton_in_domain in H.
     rewrite H.
     apply NameSets.EP.singleton_mem_1.
 
-    apply Fun.ch_two_domain in H.
+    apply Fun.ch_two_in_domain in H.
     inversion H.
       rewrite H2.
       apply NameSets.EP.add_mem_1.
@@ -153,7 +153,7 @@ Proof.
         apply H0.
         rewrite H3; auto.
 
-    apply Fun.ch_two_domain in H.
+    apply Fun.ch_two_in_domain in H.
     inversion H.
       rewrite H3.
       apply NameSets.EP.add_mem_1.
@@ -165,7 +165,7 @@ Proof.
         apply H0.
         rewrite H4; auto.
 
-    apply Fun.fun_plus_domain in H.
+    apply Fun.fun_plus_in_domain in H.
     apply NameSets.F.mem_iff.
     apply mem_union.
     inversion H.
@@ -177,7 +177,7 @@ Proof.
       apply NameSets.F.mem_iff in H1.
       right; apply H1.
 
-    apply Fun.fun_remove_domain_2 in H.
+    apply Fun.fun_remove_in_domain_2 in H.
     inversion_clear H.
     apply IHty in H1.
     rewrite NameSets.EP.remove_mem_2.
@@ -190,7 +190,7 @@ Proof.
 
     exfalso; apply H; auto.
 
-    apply Fun.fun_plus_domain in H.
+    apply Fun.fun_plus_in_domain in H.
     apply NameSets.F.mem_iff.
     apply mem_union.
     inversion H.
@@ -203,9 +203,9 @@ Proof.
       right; auto.
 Qed.
 
-Lemma typing_domain_2 : forall ns f p (ty : ns ; f |- p) x,
+Lemma typing_in_domain_2 : forall ns f p (ty : ns ; f |- p) x,
                         NameSets.mem x ns = true ->
-                        Fun.domain f x.
+                        Fun.in_domain f x.
 Proof.
   intros.
 
@@ -216,7 +216,7 @@ Proof.
     apply H1.
     auto.
 
-  unfold Fun.domain.
+  unfold Fun.in_domain.
   intro.
   induction ty.
     rewrite NameSets.EP.empty_mem in H.
@@ -285,24 +285,24 @@ Proof.
       apply IHty1 in H3.
         auto.
         apply H0 in H1.
-        apply Fun.fun_plus_not_domain in H1.
+        apply Fun.fun_plus_not_in_domain in H1.
         inversion H1.
-        unfold Fun.domain in H4.
+        unfold Fun.in_domain in H4.
         destruct (f1 x).
           exfalso; apply H4; intro; discriminate.
           auto.
       apply IHty2 in H3.
         auto.
         apply H0 in H1.
-        apply Fun.fun_plus_not_domain in H1.
+        apply Fun.fun_plus_not_in_domain in H1.
         inversion H1.
-        unfold Fun.domain in H5.
+        unfold Fun.in_domain in H5.
         destruct (f2 x).
           exfalso; apply H5; intro; discriminate.
           auto.
 
     apply H0 in H1.
-    apply Fun.fun_remove_not_domain_2 in H1.
+    apply Fun.fun_remove_not_in_domain_2 in H1.
     inversion H1.
     rewrite <- H2 in H.
     rewrite NameSets.EP.remove_mem_1 in H.
@@ -310,7 +310,7 @@ Proof.
     apply NameSets.EP.remove_mem_3 in H.
     apply IHty in H.
       auto.
-      unfold Fun.domain in H2.
+      unfold Fun.in_domain in H2.
       destruct (f x).
         exfalso; apply H2; intro; discriminate.
         auto.
@@ -323,43 +323,43 @@ Proof.
     inversion H.
       apply IHty1 in H3; auto.
       apply H0 in H1.
-      apply Fun.fun_plus_not_domain in H1.
+      apply Fun.fun_plus_not_in_domain in H1.
       inversion H1.
-      unfold Fun.domain in H4.
+      unfold Fun.in_domain in H4.
       destruct (f x).
         exfalso; apply H4; intro; discriminate.
         auto.
       apply IHty2 in H3; auto.
       apply H0 in H1.
-      apply Fun.fun_plus_not_domain in H1.
+      apply Fun.fun_plus_not_in_domain in H1.
       inversion H1.
-      unfold Fun.domain in H5.
+      unfold Fun.in_domain in H5.
       destruct (f' x).
         exfalso; apply H5; intro; discriminate.
         auto.
 Qed.
 
-Lemma typing_range_domain : forall ns f p (ty : ns ; f |- p), Fun.range_domain f.
+Lemma typing_in_range_in_domain : forall ns f p (ty : ns ; f |- p), Fun.in_range_in_domain f.
 Proof.
   intros.
   induction ty.
-    apply Fun.ch_empty_range_domain.
+    apply Fun.ch_empty_in_range_in_domain.
 
-    apply Fun.ch_empty_range_domain.
+    apply Fun.ch_empty_in_range_in_domain.
 
-    apply Fun.ch_singleton_range_domain.
+    apply Fun.ch_singleton_in_range_in_domain.
 
-    apply Fun.ch_singleton_range_domain.
+    apply Fun.ch_singleton_in_range_in_domain.
 
-    apply Fun.ch_two_range_domain; auto.
+    apply Fun.ch_two_in_range_in_domain; auto.
 
-    apply Fun.ch_two_range_domain; auto.
+    apply Fun.ch_two_in_range_in_domain; auto.
 
-    apply Fun.fun_plus_range_domain; auto.
+    apply Fun.fun_plus_in_range_in_domain; auto.
 
-    apply Fun.fun_remove_range_domain; auto.
+    apply Fun.fun_remove_in_range_in_domain; auto.
 
-    apply Fun.ch_empty_range_domain.
+    apply Fun.ch_empty_in_range_in_domain.
 
-    apply Fun.fun_plus_range_domain; auto.
+    apply Fun.fun_plus_in_range_in_domain; auto.
 Qed.
