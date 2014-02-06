@@ -120,38 +120,37 @@ Lemma function_property_1 : forall ns f p (ty : ns ; f |- p), Fun.Fun_prop_1 f.
 Proof.
   intros.
   induction ty.
-    apply Fun.ch_empty_prop_1.
+    apply Fun.ch_0_prop_1.
 
-    apply Fun.ch_empty_prop_1.
+    apply Fun.ch_0_prop_1.
 
-    apply Fun.ch_singleton_prop_1.
+    apply Fun.ch_1_prop_1.
 
-    apply Fun.ch_singleton_prop_1.
+    apply Fun.ch_1_prop_1.
 
-    apply Fun.ch_two_prop_1; auto.
+    apply Fun.ch_2_prop_1; auto.
 
-    apply Fun.ch_two_prop_1; auto.
+    apply Fun.ch_2_prop_1; auto.
 
     apply Fun.fun_plus_prop_1; auto.
 
     apply Fun.fun_remove_prop_1; auto.
 
-    apply Fun.ch_empty_prop_1.
+    apply Fun.ch_0_prop_1.
 
     apply Fun.fun_plus_prop_1; auto.
 
-    apply Fun.ch_singleton_prop_1.
+    apply Fun.ch_1_prop_1.
 
-    apply Fun.ch_two_prop_1; auto.
+    apply Fun.ch_2_prop_1; auto.
 Qed.
 
-Lemma fun_exclusive : forall ns1 ns2 f1 f2 p1 p2
+Lemma typing_fun_exclusive : forall ns1 ns2 f1 f2 p1 p2
                              (ty1 : ns1 ; f1 |- p1) (ty2 : ns2 ; f2 |- p2),
                         NameSets.Empty (NameSets.inter ns1 ns2) ->
-                        (forall x,
-                           (Fun.in_domain f1 x -> ~ Fun.in_domain f2 x) /\
-                           (Fun.in_domain f2 x -> ~ Fun.in_domain f1 x)).
+                        Fun.fun_exclusive f1 f2.
 Proof.
+  unfold Fun.fun_exclusive.
   intros.
   eapply inter_empty in H.
   inversion_clear H.
@@ -180,74 +179,73 @@ Lemma function_property_2 : forall ns f p (ty : ns ; f |- p), Fun.Fun_prop_2 f.
 Proof.
   intros.
   induction ty.
-    apply Fun.ch_empty_prop_2.
+    apply Fun.ch_0_prop_2.
 
-    apply Fun.ch_empty_prop_2.
+    apply Fun.ch_0_prop_2.
 
-    apply Fun.ch_singleton_prop_2.
+    apply Fun.ch_1_prop_2.
 
-    apply Fun.ch_singleton_prop_2.
+    apply Fun.ch_1_prop_2.
 
-    apply Fun.ch_two_prop_2.
+    apply Fun.ch_2_prop_2.
 
-    apply Fun.ch_two_prop_2.
+    apply Fun.ch_2_prop_2.
 
     apply Fun.fun_plus_prop_2; auto.
       eapply typing_in_range_in_domain; apply ty1.
       eapply typing_in_range_in_domain; apply ty2.
-      intros.
-      eapply fun_exclusive with
-      (ns1 := ns1) (ns2 := ns2) (f1 := f1) (f2 := f2) (p1 := p1) (p2 := p2) (x := x)
+      eapply typing_fun_exclusive with
+      (ns1 := ns1) (ns2 := ns2) (f1 := f1) (f2 := f2) (p1 := p1) (p2 := p2)
         in H; auto.
 
     apply Fun.fun_remove_prop_2; auto.
 
-    apply Fun.ch_empty_prop_2.
+    apply Fun.ch_0_prop_2.
 
     inversion H.
     inversion Compatible_prop.
     inversion H1.
     auto.
 
-    apply Fun.ch_singleton_prop_2.
+    apply Fun.ch_1_prop_2.
 
-    apply Fun.ch_two_prop_2.
+    apply Fun.ch_2_prop_2.
 Qed.
 
 Lemma function_property_3 : forall ns f p (ty : ns ; f |- p), Fun.Fun_prop_3 f.
 Proof.
   intros.
   induction ty.
-    apply Fun.ch_empty_prop_3.
+    apply Fun.ch_0_prop_3.
 
-    apply Fun.ch_empty_prop_3.
+    apply Fun.ch_0_prop_3.
 
-    apply Fun.ch_singleton_prop_3.
+    apply Fun.ch_1_prop_3.
 
-    apply Fun.ch_singleton_prop_3.
+    apply Fun.ch_1_prop_3.
 
-    apply Fun.ch_two_prop_3; auto.
+    apply Fun.ch_2_prop_3; auto.
 
-    apply Fun.ch_two_prop_3; auto.
+    apply Fun.ch_2_prop_3; auto.
 
     apply Fun.fun_plus_prop_3; auto.
       intros.
-      eapply fun_exclusive with (x := x) in H.
+      eapply typing_fun_exclusive in H.
         apply H.
         apply ty1.
         apply ty2.
 
     apply Fun.fun_remove_prop_3; auto.
 
-    apply Fun.ch_empty_prop_3.
+    apply Fun.ch_0_prop_3.
 
     inversion H.
     inversion Compatible_prop.
     inversion H1; auto.
 
-    apply Fun.ch_singleton_prop_3.
+    apply Fun.ch_1_prop_3.
 
-    apply Fun.ch_two_prop_3; auto.
+    apply Fun.ch_2_prop_3; auto.
 Qed.
 
 Lemma function_property : forall ns f p (ty : ns ; f |- p), FunctionProperty ty.
@@ -379,17 +377,17 @@ Proof.
     inversion H; subst; auto.
       apply IHty in H5.
       symmetry in H5.
-      apply Fun.ch_singleton_not_empty in H5.
+      apply Fun.ch_1_not_empty in H5.
       easy.
 
       apply IHty in H3.
       symmetry in H3.
-      apply Fun.ch_two_not_empty in H3.
+      apply Fun.ch_2_not_empty in H3.
       easy.
 
     inversion H0; subst; auto.
       apply IHty in H6.
-      apply Fun.ch_singleton_equal in H6.
+      apply Fun.ch_1_equal in H6.
       easy.
 
       apply IHty in H4.
@@ -397,23 +395,23 @@ Proof.
 
     inversion H1; subst; auto.
       apply IHty in H5.
-      apply Fun.ch_singleton_not_empty in H5.
+      apply Fun.ch_1_not_empty in H5.
       easy.
 
       apply IHty in H6.
-      apply Fun.ch_singleton_equal in H6.
+      apply Fun.ch_1_equal in H6.
       rewrite H6 in H.
       exfalso; apply H; auto.
 
       apply IHty in H7.
-      apply Fun.ch_singleton_equal in H7.
+      apply Fun.ch_1_equal in H7.
       rewrite H7.
       auto.
 
       apply IHty in H5.
       apply equal_f with x in H5.
-      unfold Fun.ch_singleton in H5.
-      unfold Fun.ch_two in H5.
+      unfold Fun.ch_1 in H5.
+      unfold Fun.ch_2 in H5.
       rewrite beq_name_refl in H5.
       apply beq_name_false_iff in H.
       rewrite beq_name_sym in H.
@@ -422,15 +420,15 @@ Proof.
 
     inversion H2; subst; auto.
       apply IHty in H6.
-      apply Fun.ch_two_not_empty in H6; easy.
+      apply Fun.ch_2_not_empty in H6; easy.
 
       apply IHty in H7.
       auto.
 
       apply IHty in H8.
       apply equal_f with x in H8.
-      unfold Fun.ch_singleton in H8.
-      unfold Fun.ch_two in H8.
+      unfold Fun.ch_1 in H8.
+      unfold Fun.ch_2 in H8.
       rewrite beq_name_refl in H8.
       apply beq_name_false_iff in H9.
       rewrite beq_name_sym in H9.

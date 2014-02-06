@@ -14,6 +14,9 @@ Module Fun.
 
   Definition in_range_in_domain f := forall x, in_range f x -> in_domain f x.
 
+  Definition fun_exclusive f1 f2 := forall x,
+    (in_domain f1 x -> ~ in_domain f2 x) /\ (in_domain f2 x -> ~ in_domain f1 x).
+
   Lemma in_domain_not_empty : forall f x, in_domain f x -> f <> empty.
   Proof.
     intros.
@@ -395,10 +398,11 @@ Module Fun.
             discriminate.
   Qed.
 
-  Definition fun_join (f : temp_name_mapping) : temp_name_mapping :=
+  Definition fun_double (f : temp_name_mapping) : temp_name_mapping :=
     fun x : name =>
       match f x with
-        | Some n => (to_star_function f) n
+        | Some (star_name n) => f n
+        | Some _ => Some star_bottom
         | None => None
       end.
 
@@ -418,7 +422,7 @@ Module Fun.
 
   (* f*(f(x)) = _|_ *)
   Definition Fun_prop_3 (f : temp_name_mapping) :=
-    forall x, in_domain f x -> fun_join f x = Some star_bottom.
+    forall x, in_domain f x -> fun_double f x = Some star_bottom.
 
   Definition Fun_prop (f : temp_name_mapping) :=
     Fun_prop_1 f /\ Fun_prop_2 f /\ Fun_prop_3 f.
@@ -434,11 +438,11 @@ Module Fun.
       | f :: fs' => Forall (Compatible f) fs' /\ Mutually_compatible fs'
     end.
 
-  (* ch_empty *)
+  (* ch_0 *)
 
-  Definition ch_empty := empty.
+  Definition ch_0 := empty.
 
-  Lemma ch_empty_in_range_in_domain : in_range_in_domain ch_empty.
+  Lemma ch_0_in_range_in_domain : in_range_in_domain ch_0.
   Proof.
     unfold in_range_in_domain.
     unfold in_range, in_domain.
@@ -447,7 +451,7 @@ Module Fun.
       compute in H0; discriminate.
   Qed.
 
-  Lemma ch_empty_prop_1 : Fun_prop_1 ch_empty.
+  Lemma ch_0_prop_1 : Fun_prop_1 ch_0.
   Proof.
     unfold Fun_prop_1.
     intro.
@@ -456,7 +460,7 @@ Module Fun.
     discriminate.
   Qed.
 
-  Lemma ch_empty_prop_2 : Fun_prop_2 ch_empty.
+  Lemma ch_0_prop_2 : Fun_prop_2 ch_0.
   Proof.
     unfold Fun_prop_2.
     intros.
@@ -465,7 +469,7 @@ Module Fun.
     discriminate.
   Qed.
 
-  Lemma ch_empty_prop_3 : Fun_prop_3 ch_empty.
+  Lemma ch_0_prop_3 : Fun_prop_3 ch_0.
   Proof.
     unfold Fun_prop_3.
     intros.
@@ -473,26 +477,26 @@ Module Fun.
     exfalso; apply H; auto.
   Qed.
 
-  Theorem ch_empty_prop : Fun_prop ch_empty.
+  Theorem ch_0_prop : Fun_prop ch_0.
   Proof.
     unfold Fun_prop.
     split.
-    apply ch_empty_prop_1.
+    apply ch_0_prop_1.
     split.
-    apply ch_empty_prop_2.
-    apply ch_empty_prop_3.
+    apply ch_0_prop_2.
+    apply ch_0_prop_3.
   Qed.
 
-  (* ch_singleton *)
+  (* ch_1 *)
 
-  Definition ch_singleton (n : name) : temp_name_mapping :=
+  Definition ch_1 (n : name) : temp_name_mapping :=
     fun x => if beq_name n x
              then Some star_bottom
              else None.
 
-  Lemma ch_singleton_equal : forall x y, ch_singleton x = ch_singleton y <-> x = y.
+  Lemma ch_1_equal : forall x y, ch_1 x = ch_1 y <-> x = y.
   Proof.
-    unfold ch_singleton.
+    unfold ch_1.
     split; intros.
       apply equal_f with x in H.
       rewrite beq_name_refl in H.
@@ -506,20 +510,20 @@ Module Fun.
       auto.
   Qed.
 
-  Lemma ch_singleton_not_empty : forall x, ch_singleton x <> empty.
+  Lemma ch_1_not_empty : forall x, ch_1 x <> empty.
   Proof.
     intros.
     intro.
     apply equal_f with x in H.
-    unfold ch_singleton in H.
+    unfold ch_1 in H.
     rewrite beq_name_refl in H.
     discriminate.
   Qed.
 
-  Lemma ch_singleton_in_domain : forall x y, in_domain (ch_singleton x) y <-> x = y.
+  Lemma ch_1_in_domain : forall x y, in_domain (ch_1 x) y <-> x = y.
   Proof.
     unfold in_domain.
-    unfold ch_singleton.
+    unfold ch_1.
     intros.
     destruct (beq_name x y) eqn:?.
       apply beq_name_true_iff in Heqb.
@@ -534,10 +538,10 @@ Module Fun.
         contradiction.
   Qed.
 
-  Lemma ch_singleton_not_in_domain : forall x y, ~ in_domain (ch_singleton x) y <-> x <> y.
+  Lemma ch_1_not_in_domain : forall x y, ~ in_domain (ch_1 x) y <-> x <> y.
   Proof.
     unfold in_domain.
-    unfold ch_singleton.
+    unfold ch_1.
     intros.
     destruct (beq_name x y) eqn:?.
       apply beq_name_true_iff in Heqb.
@@ -562,9 +566,9 @@ Module Fun.
         apply H0; auto.
   Qed.
 
-  Lemma ch_singleton_not_name : forall x y z, ch_singleton x y <> Some (star_name z).
+  Lemma ch_1_not_name : forall x y z, ch_1 x y <> Some (star_name z).
   Proof.
-    unfold ch_singleton.
+    unfold ch_1.
     intros.
     destruct (beq_name x y) eqn:?.
       intro.
@@ -574,28 +578,28 @@ Module Fun.
       discriminate.
   Qed.
 
-  Lemma ch_singleton_in_range_in_domain : forall x, in_range_in_domain (ch_singleton x).
+  Lemma ch_1_in_range_in_domain : forall x, in_range_in_domain (ch_1 x).
   Proof.
     unfold in_range_in_domain.
     unfold in_range, in_domain.
-    unfold ch_singleton.
+    unfold ch_1.
     intros.
     inversion H.
     destruct (beq_name x x1) eqn:?; discriminate.
   Qed.
 
-  Lemma ch_singleton_prop_1 : forall n, Fun_prop_1 (ch_singleton n).
+  Lemma ch_1_prop_1 : forall n, Fun_prop_1 (ch_1 n).
   Proof.
     unfold Fun_prop_1.
     intros.
-    unfold ch_singleton.
+    unfold ch_1.
     destruct (beq_name n x); intro; discriminate.
   Qed.
 
-  Lemma ch_singleton_prop_2 : forall n, Fun_prop_2 (ch_singleton n).
+  Lemma ch_1_prop_2 : forall n, Fun_prop_2 (ch_1 n).
   Proof.
     unfold Fun_prop_2.
-    unfold ch_singleton.
+    unfold ch_1.
     intros.
     destruct (beq_name n x) eqn:?.
       apply beq_name_true_iff in Heqb.
@@ -610,17 +614,14 @@ Module Fun.
       discriminate.
   Qed.
 
-  Lemma ch_singleton_prop_3 : forall n, Fun_prop_3 (ch_singleton n).
+  Lemma ch_1_prop_3 : forall n, Fun_prop_3 (ch_1 n).
   Proof.
     unfold Fun_prop_3.
     unfold in_domain.
-    unfold ch_singleton.
-    unfold fun_join.
+    unfold ch_1.
+    unfold fun_double.
     intros.
     destruct (beq_name n x) eqn:?.
-      apply beq_name_true_iff in Heqb.
-      rewrite Heqb.
-      compute.
       auto.
 
       exfalso.
@@ -628,19 +629,19 @@ Module Fun.
       auto.
   Qed.
 
-  Theorem ch_singleton_prop : forall n, Fun_prop (ch_singleton n).
+  Theorem ch_1_prop : forall n, Fun_prop (ch_1 n).
   Proof.
     unfold Fun_prop.
     split.
-    apply ch_singleton_prop_1.
+    apply ch_1_prop_1.
     split.
-    apply ch_singleton_prop_2.
-    apply ch_singleton_prop_3.
+    apply ch_1_prop_2.
+    apply ch_1_prop_3.
   Qed.
 
-  (* ch_two *)
+  (* ch_2 *)
 
-  Definition ch_two (n m : name) : temp_name_mapping :=
+  Definition ch_2 (n m : name) : temp_name_mapping :=
     fun x =>
       if beq_name n x
       then Some (star_name m)
@@ -648,24 +649,24 @@ Module Fun.
            then Some star_bottom
            else None.
 
-  Lemma ch_two_not_empty : forall x y, ch_two x y <> empty.
+  Lemma ch_2_not_empty : forall x y, ch_2 x y <> empty.
   Proof.
     intros.
     intro.
     apply equal_f with x in H.
-    unfold ch_two in H.
+    unfold ch_2 in H.
     rewrite beq_name_refl in H.
     compute in H.
     discriminate.
   Qed.
 
-  Theorem ch_two_in_domain : forall x y z, in_domain (ch_two x y) z <-> x = z \/ y = z.
+  Theorem ch_2_in_domain : forall x y z, in_domain (ch_2 x y) z <-> x = z \/ y = z.
   Proof.
     split.
     intros.
 
     unfold in_domain in H.
-    unfold ch_two in H.
+    unfold ch_2 in H.
     destruct (beq_name x z) eqn:?.
       apply beq_name_true_iff in Heqb.
       left; auto.
@@ -677,7 +678,7 @@ Module Fun.
         exfalso; apply H; auto.
     intro.
     unfold in_domain.
-    unfold ch_two.
+    unfold ch_2.
     inversion H.
       rewrite <- H0.
       rewrite beq_name_refl.
@@ -690,10 +691,10 @@ Module Fun.
         intro; discriminate.
   Qed.
 
-  Lemma ch_two_not_in_domain : forall x y z, ~ in_domain (ch_two x y) z <-> x <> z /\ y <> z.
+  Lemma ch_2_not_in_domain : forall x y z, ~ in_domain (ch_2 x y) z <-> x <> z /\ y <> z.
   Proof.
     unfold in_domain.
-    unfold ch_two.
+    unfold ch_2.
     intros.
     destruct (beq_name x z) eqn:?.
       apply beq_name_true_iff in Heqb.
@@ -735,10 +736,10 @@ Module Fun.
         apply H2; auto.
   Qed.
 
-  Lemma ch_two_in_range_in_domain : forall x y, x <> y -> in_range_in_domain (ch_two x y).
+  Lemma ch_2_in_range_in_domain : forall x y, x <> y -> in_range_in_domain (ch_2 x y).
   Proof.
     unfold in_range_in_domain.
-    unfold in_range, in_domain, ch_two.
+    unfold in_range, in_domain, ch_2.
     intros.
     inversion_clear H0.
     destruct (beq_name x x1) eqn:?.
@@ -758,10 +759,10 @@ Module Fun.
           destruct (beq_name y x1); discriminate.
   Qed.
 
-  Lemma ch_two_prop_1 : forall n m, n <> m -> Fun_prop_1 (ch_two n m).
+  Lemma ch_2_prop_1 : forall n m, n <> m -> Fun_prop_1 (ch_2 n m).
   Proof.
     unfold Fun_prop_1.
-    unfold ch_two.
+    unfold ch_2.
     intros.
     destruct (beq_name n x) eqn:?.
       apply beq_name_true_iff in Heqb.
@@ -777,11 +778,11 @@ Module Fun.
         discriminate.
   Qed.
 
-  Lemma ch_two_prop_2 : forall n m, Fun_prop_2 (ch_two n m).
+  Lemma ch_2_prop_2 : forall n m, Fun_prop_2 (ch_2 n m).
   Proof.
     unfold Fun_prop_2.
     unfold in_domain.
-    unfold ch_two.
+    unfold ch_2.
     intros.
     destruct (beq_name n x) eqn:?.
       apply beq_name_true_iff in Heqb.
@@ -807,12 +808,12 @@ Module Fun.
         inversion H; discriminate.
   Qed.
 
-  Lemma ch_two_prop_3 : forall n m, n <> m -> Fun_prop_3(ch_two n m).
+  Lemma ch_2_prop_3 : forall n m, n <> m -> Fun_prop_3(ch_2 n m).
   Proof.
     unfold Fun_prop_3.
     unfold in_domain.
-    unfold ch_two.
-    unfold fun_join.
+    unfold ch_2.
+    unfold fun_double.
     unfold to_star_function.
     intros.
     destruct (beq_name n x) eqn:?.
@@ -830,13 +831,13 @@ Module Fun.
         exfalso; apply H0; auto.
   Qed.
 
-  Theorem ch_two_prop : forall n m, n <> m -> Fun_prop (ch_two n m).
+  Theorem ch_2_prop : forall n m, n <> m -> Fun_prop (ch_2 n m).
   Proof.
     split.
-    apply ch_two_prop_1; auto.
+    apply ch_2_prop_1; auto.
     split.
-    apply ch_two_prop_2.
-    apply ch_two_prop_3; auto.
+    apply ch_2_prop_2.
+    apply ch_2_prop_3; auto.
   Qed.
 
   Lemma fun_plus_prop_1 : forall f1 f2,
@@ -865,14 +866,13 @@ Module Fun.
   Lemma fun_plus_prop_2 : forall f1 f2,
                             in_range_in_domain f1 ->
                             in_range_in_domain f2 ->
-                            (forall x,
-                               (in_domain f1 x -> ~ in_domain f2 x) /\
-                               (in_domain f2 x -> ~ in_domain f1 x)) ->
+                            fun_exclusive f1 f2 ->
                             Fun_prop_2 f1 ->
                             Fun_prop_2 f2 ->
                             Fun_prop_2 (fun_plus f1 f2).
   Proof.
     unfold Fun_prop_2.
+    unfold fun_exclusive.
     unfold in_domain.
     unfold fun_plus.
     intros.
@@ -990,15 +990,14 @@ Module Fun.
   Qed.
 
   Lemma fun_plus_prop_3 : forall f1 f2,
-                            (forall x,
-                               (in_domain f1 x -> ~ in_domain f2 x) /\
-                               (in_domain f2 x -> ~ in_domain f1 x)) ->
+                            fun_exclusive f1 f2 ->
                             Fun_prop_3 f1 ->
                             Fun_prop_3 f2 ->
                             Fun_prop_3 (fun_plus f1 f2).
   Proof.
     unfold Fun_prop_3.
-    unfold fun_join.
+    unfold fun_exclusive.
+    unfold fun_double.
     unfold to_star_function.
     unfold fun_plus.
     unfold in_domain.
@@ -1072,9 +1071,7 @@ Module Fun.
   Theorem fun_plus_prop : forall f1 f2,
                             in_range_in_domain f1 ->
                             in_range_in_domain f2 ->
-                            (forall x,
-                               (in_domain f1 x -> ~ in_domain f2 x) /\
-                               (in_domain f2 x -> ~ in_domain f1 x)) ->
+                            fun_exclusive f1 f2 ->
                             Fun_prop f1 ->
                             Fun_prop f2 ->
                             Fun_prop (fun_plus f1 f2).
@@ -1142,13 +1139,13 @@ Module Fun.
           inversion H1; discriminate.
 
       unfold Fun_prop_3; intros.
-      unfold fun_join.
+      unfold fun_double.
       unfold to_star_function.
 
       unfold in_range_in_domain in rd.
       unfold in_range in rd.
 
-      unfold fun_join in H2.
+      unfold fun_double in H2.
       unfold in_domain in H2, H1, rd.
       unfold to_star_function in H2.
       unfold fun_plus in H2.
@@ -1219,13 +1216,13 @@ Module Fun.
           inversion H1; discriminate.
 
       unfold Fun_prop_3; intros.
-      unfold fun_join.
+      unfold fun_double.
       unfold to_star_function.
 
       unfold in_range_in_domain in rd.
       unfold in_range in rd.
 
-      unfold fun_join in H2.
+      unfold fun_double in H2.
       unfold in_domain in H2, H1, rd.
       unfold to_star_function in H2.
       unfold fun_plus in H2.
@@ -1378,7 +1375,7 @@ Qed.
                               Fun_prop_3 (fun_remove f n).
   Proof.
     unfold Fun_prop_3.
-    unfold fun_remove, fun_join, in_domain, to_star_function.
+    unfold fun_remove, fun_double, in_domain, to_star_function.
     intros.
     assert (forall o, (exists (x : Type), o = Some x) -> o <> None).
       intros.
