@@ -37,6 +37,13 @@ Inductive typing : NameSets.t -> Fun.temp_name_mapping -> config -> Prop :=
                   ns' ; f' |- caseof x l ->
                   Fun.Compatible f f' ->
                   NameSets.union ns ns' ; Fun.fun_plus f f' |- caseof x ((y, p) :: l)
+  | INST_1 : forall n u v z p x y,
+               NameSets.singleton u ; Fun.ch_singleton u |- create u z p ->
+               NameSets.singleton x ; Fun.ch_singleton x |- instantiate_1 n u v z p x y
+  | INST_2 : forall n u1 u2 v z p x1 x2 y,
+               NameSets.add u1 (NameSets.singleton u2) ; Fun.ch_two u1 u2 |- create u1 z p ->
+               x1 <> x2 ->
+               NameSets.add x1 (NameSets.singleton x2) ; Fun.ch_two x1 x2 |- instantiate_2 n u1 u2 v z p x1 x2 y
   where "ns ';' f '|-' p" := (typing ns f p).
 
 Hint Constructors typing.
@@ -201,6 +208,23 @@ Proof.
       apply IHty2 in H1.
       apply NameSets.F.mem_iff in H1.
       right; auto.
+
+    apply Fun.ch_singleton_in_domain in H.
+    rewrite H.
+    apply NameSets.EP.singleton_mem_1.
+
+    apply Fun.ch_two_in_domain in H.
+    inversion H.
+      rewrite H1.
+      apply NameSets.EP.add_mem_1.
+
+      rewrite <- H1.
+      erewrite NameSets.EP.add_mem_2.
+        apply NameSets.EP.singleton_mem_1.
+        destruct x1, x2.
+        intro.
+        apply H0.
+        rewrite H2; auto.
 Qed.
 
 Lemma typing_in_domain_2 : forall ns f p (ty : ns ; f |- p) x,
@@ -337,6 +361,33 @@ Proof.
       destruct (f' x).
         exfalso; apply H5; intro; discriminate.
         auto.
+
+    unfold Fun.ch_singleton in H1.
+    destruct (beq_name x0 x) eqn:?.
+      discriminate.
+      apply beq_name_false_iff in Heqb.
+      apply Heqb.
+      apply NameSets.EP.singleton_mem_3 in H.
+      destruct x0, x.
+      auto.
+
+    unfold Fun.ch_two in H1.
+    destruct (beq_name x1 x) eqn:?.
+      discriminate.
+      destruct (beq_name x2 x) eqn:?.
+        discriminate.
+        apply beq_name_false_iff in Heqb.
+        apply beq_name_false_iff in Heqb0.
+        rewrite NameSets.EP.add_mem_2 in H.
+          apply NameSets.EP.singleton_mem_3 in H.
+          destruct x, x1, x2.
+          rewrite H in Heqb0.
+          auto.
+
+          destruct x1, x.
+          intro.
+          rewrite H3 in Heqb.
+          auto.
 Qed.
 
 Lemma typing_in_range_in_domain : forall ns f p (ty : ns ; f |- p), Fun.in_range_in_domain f.
@@ -362,4 +413,8 @@ Proof.
     apply Fun.ch_empty_in_range_in_domain.
 
     apply Fun.fun_plus_in_range_in_domain; auto.
+
+    apply Fun.ch_singleton_in_range_in_domain.
+
+    apply Fun.ch_two_in_range_in_domain; auto.
 Qed.

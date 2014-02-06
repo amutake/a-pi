@@ -92,6 +92,25 @@ Proof.
       apply IHty2 in H1.
       apply caseof_free_t.
       auto.
+
+    apply NameSets.P.singleton_equal_add in H.
+    apply add_in in H.
+    inversion H.
+      rewrite H0; auto.
+
+      apply NameSets.F.empty_iff in H0; easy.
+
+    apply add_in in H0.
+    inversion H0.
+      rewrite H1; auto.
+
+      assert (x = x2).
+        apply NameSets.P.singleton_equal_add in H1.
+        apply add_in in H1.
+        inversion H1.
+          auto.
+          apply NameSets.F.empty_iff in H2; easy.
+      rewrite H2; auto.
 Qed.
 
 Definition FunctionProperty {ns} {f} {p} (ty : ns ; f |- p) : Prop :=
@@ -120,6 +139,10 @@ Proof.
     apply Fun.ch_empty_prop_1.
 
     apply Fun.fun_plus_prop_1; auto.
+
+    apply Fun.ch_singleton_prop_1.
+
+    apply Fun.ch_two_prop_1; auto.
 Qed.
 
 Lemma fun_exclusive : forall ns1 ns2 f1 f2 p1 p2
@@ -185,6 +208,10 @@ Proof.
     inversion Compatible_prop.
     inversion H1.
     auto.
+
+    apply Fun.ch_singleton_prop_2.
+
+    apply Fun.ch_two_prop_2.
 Qed.
 
 Lemma function_property_3 : forall ns f p (ty : ns ; f |- p), Fun.Fun_prop_3 f.
@@ -217,6 +244,10 @@ Proof.
     inversion H.
     inversion Compatible_prop.
     inversion H1; auto.
+
+    apply Fun.ch_singleton_prop_3.
+
+    apply Fun.ch_two_prop_3; auto.
 Qed.
 
 Lemma function_property : forall ns f p (ty : ns ; f |- p), FunctionProperty ty.
@@ -333,6 +364,10 @@ Proof.
     setoid_rewrite H8.
     auto.
 
+    inversion H; subst; auto.
+
+    inversion H0; subst; auto.
+
   (* f = f' *)
   generalize dependent ns'.
   generalize dependent f'.
@@ -425,6 +460,10 @@ Proof.
     rewrite H6.
     rewrite H8.
     auto.
+
+    inversion H; subst; auto.
+
+    inversion H0; subst; auto.
 Qed.
 
 Theorem Soundness : forall ns f p (ty : ns ; f |- p),

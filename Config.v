@@ -1,4 +1,4 @@
-Require Import Coq.Logic.FunctionalExtensionality Coq.Arith.EqNat Coq.MSets.MSets Names Sets Fun.
+Require Import Coq.Logic.FunctionalExtensionality Coq.Arith.EqNat Coq.Vectors.Vector Coq.MSets.MSets Names Sets Fun.
 
 Inductive config : Set :=
   | nil : config
@@ -6,7 +6,13 @@ Inductive config : Set :=
   | send : name -> name -> config
   | restrict : name -> config -> config
   | compose : config -> config -> config
-  | caseof : name -> list (name * config) -> config.
+  | caseof : name -> list (name * config) -> config
+  | instantiate_1 : forall n, name -> Vector.t name n ->
+                              name -> config ->
+                              name -> Vector.t name n -> config
+  | instantiate_2 : forall n, name -> name -> Vector.t name n ->
+                              name -> config ->
+                              name -> name -> Vector.t name n -> config.
 
 Inductive ConfigName (x : name) : config -> Prop :=
   | send_name_1 : forall y, ConfigName x (send x y)
@@ -79,7 +85,32 @@ Inductive ConfigFreeName (x : name) : config -> Prop :=
   | caseof_free : forall l, ConfigFreeName x (caseof x l)
   | caseof_free_h_fst : forall y c l, ConfigFreeName x (caseof y ((x, c) :: l))
   | caseof_free_h_snd : forall y n c l, ConfigFreeName x c -> ConfigFreeName x (caseof y ((n, c) :: l))
-  | caseof_free_t : forall y nc l, ConfigFreeName x (caseof y l) -> ConfigFreeName x (caseof y (nc :: l)).
+  | caseof_free_t : forall y nc l, ConfigFreeName x (caseof y l) -> ConfigFreeName x (caseof y (nc :: l))
+  | instantiate_1_free_x : forall n u v z p y,
+                             ConfigFreeName x (instantiate_1 n u v z p x y)
+  | instantiate_1_free_y : forall n u v z p x' y,
+                             Vector.In x y ->
+                             ConfigFreeName x (instantiate_1 n u v z p x' y)
+  | instantiate_1_free_p : forall n u v z p x' y,
+                             ConfigFreeName x p ->
+                             x <> u ->
+                             ~ Vector.In x v ->
+                             x <> z ->
+                             ConfigFreeName x (instantiate_1 n u v z p x' y)
+  | instantiate_2_free_x_1 : forall n u1 u2 v z p x2 y,
+                               ConfigFreeName x (instantiate_2 n u1 u2 v z p x x2 y)
+  | instantiate_2_free_x_2 : forall n u1 u2 v z p x1 y,
+                               ConfigFreeName x (instantiate_2 n u1 u2 v z p x1 x y)
+  | instantiate_2_free_y : forall n u1 u2 v z p x1 x2 y,
+                             Vector.In x y ->
+                             ConfigFreeName x (instantiate_2 n u1 u2 v z p x1 x2 y)
+  | instantiate_2_free_p : forall n u1 u2 v z p x1 x2 y,
+                             ConfigFreeName x p ->
+                             x <> u1 ->
+                             x <> u2 ->
+                             ~ Vector.In x v ->
+                             x <> z ->
+                             ConfigFreeName x (instantiate_2 n u1 u2 v z p x1 x2 y).
 
 Hint Constructors ConfigFreeName.
 
