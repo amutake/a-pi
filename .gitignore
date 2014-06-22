@@ -3,3 +3,4 @@
 *.omc
 .omakedb
 .omakedb.lock
+*.v.d
