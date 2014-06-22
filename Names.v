@@ -114,6 +114,24 @@ Definition beq_star (s1 s2 : star) : bool :=
     | _, _ => false
   end.
 
+Theorem star_dec : forall s t : star, {s = t} + {s <> t}.
+Proof.
+  intros.
+  destruct s, t.
+  - destruct (name_dec n n0).
+    + rewrite e; left; auto.
+    + right; intro.
+      inversion H; auto.
+  - right; intro; discriminate.
+  - right; intro; discriminate.
+  - right; intro; discriminate.
+  - left; auto.
+  - right; intro; discriminate.
+  - right; intro; discriminate.
+  - right; intro; discriminate.
+  - left; auto.
+Qed.
+
 Module NameDecidableType <: DecidableType.
 
   Definition t := name.
