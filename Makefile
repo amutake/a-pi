@@ -80,7 +80,8 @@ endif
 #                    #
 ######################
 
-VFILES:=Soundness.v\
+VFILES:=Trans.v\
+  Soundness.v\
   Typing.v\
   Config.v\
   Fun.v\
