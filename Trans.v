@@ -55,25 +55,31 @@ Fixpoint inb_vect (x : name) {n : nat} (v : V.t name n) : bool :=
 Fixpoint substitute (x y : name) (c : config) : config :=
   match c with
     | nil => nil
-    | create n1 n2 c' => if beq_name x n2 then
-                           create (replace x y n1) n2 c'
-                         else
-                           create (replace x y n1) n2 (substitute x y c')
+    | create n1 n2 c' =>
+      create (replace x y n1) n2
+             (if beq_name x n2 then
+                c'
+              else
+                (substitute x y c'))
     | send n1 n2 => send (replace x y n1) (replace x y n2)
     | restrict n c' => restrict (replace x y n) (substitute x y c')
     | compose c1 c2 => compose (substitute x y c1) (substitute x y c2)
     | caseof n l => caseof (replace x y n)
                            (List.map (fun p => (replace x y (fst p), substitute x y (snd p))) l)
     | instantiate_1 num x' ys z p u vs =>
-      if beq_name x x' || inb_vect x ys || beq_name x z then
-        instantiate_1 num x' ys z p (replace x y u) (replace_vect x y vs)
-      else
-        instantiate_1 num x' ys z (substitute x y p) (replace x y u) (replace_vect x y vs)
+      instantiate_1 num x' ys z
+                    (if beq_name x x' || inb_vect x ys || beq_name x z then
+                       p
+                     else
+                       (substitute x y p))
+                    (replace x y u) (replace_vect x y vs)
     | instantiate_2 num x1 x2 ys z p u1 u2 vs =>
-      if beq_name x x1 || beq_name x x2 || inb_vect x ys || beq_name x z then
-        instantiate_2 num x1 x2 ys z p (replace x y u1) (replace x y u2) (replace_vect x y vs)
-      else
-        instantiate_2 num x1 x2 ys z (substitute x y p) (replace x y u1) (replace x y u2) (replace_vect x y vs)
+      instantiate_2 num x1 x2 ys z
+                    (if beq_name x x1 || beq_name x x2 || inb_vect x ys || beq_name x z then
+                       p
+                     else
+                       (substitute x y p))
+                    (replace x y u1) (replace x y u2) (replace_vect x y vs)
   end.
 
 Notation "c { y / x }" := (substitute x y c) (at level 0, y at level 0).
@@ -127,3 +133,5 @@ Inductive trans : config -> action -> config -> Prop :=
              create u1 z (((p { u1 / x1 }) { u2 / x2 }) { vs // ys }) == a ==> p' ->
              instantiate_2 n x1 x2 ys z p u1 u2 vs == a ==> p'
 where "p == a ==> q" := (trans p a q).
+
+Hint Constructors trans.
