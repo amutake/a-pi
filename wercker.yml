@@ -1,0 +1,11 @@
+box: amutake/coq@0.0.1
+build:
+  steps:
+    - script:
+        name: compilation
+        code: |
+          make
+    - script:
+        name: coq information
+        code: |
+          coqc -v
