@@ -10,8 +10,8 @@ Requirements
 
 - Coq-8.4pl4
 
-Compilation
------------
+Compilation (Verification)
+--------------------------
 
 ```sh
 $ cd /path/to/a-pi
