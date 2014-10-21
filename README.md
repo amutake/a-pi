@@ -5,6 +5,11 @@ Aπ-calculus
 
 A formalization of Aπ-calculus using Coq.
 
+Requirements
+------------
+
+- Coq-8.4pl4
+
 Compilation
 -----------
 
@@ -18,4 +23,3 @@ Current Progress
 
 - [x] proof of the soundness property
 - [ ] proof of the type preservation property
-- ...
